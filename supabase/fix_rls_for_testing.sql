@@ -1,25 +1,19 @@
--- REVISED FIX: Allow testing without Auth
+-- REVISED FIX V3: Relax article constraints for testing
 -- Run this in the Supabase SQL Editor
 
--- 1. Remove strict requirement for requester_id until Auth is ready
-ALTER TABLE orders ALTER COLUMN requester_id DROP NOT NULL;
+-- 1. Remove strict requirement for article codes in order lines
+ALTER TABLE order_lines ALTER COLUMN requested_item_code DROP NOT NULL;
 
--- 2. Add sequence and default for order_number
-CREATE SEQUENCE IF NOT EXISTS order_seq START 1000;
-ALTER TABLE orders ALTER COLUMN order_number SET DEFAULT 'PP' || to_char(now(), 'YY') || LPAD(nextval('order_seq')::text, 6, '0');
+-- 2. If it still fails, it might be the Foreign Key itself (if article doesn't exist)
+-- Let's drop the FK constraint temporarily for development
+ALTER TABLE order_lines DROP CONSTRAINT IF EXISTS order_lines_requested_item_code_fkey;
+ALTER TABLE order_lines DROP CONSTRAINT IF EXISTS order_lines_provided_item_code_fkey;
 
--- 3. Ensure priority has a default
-ALTER TABLE orders ALTER COLUMN priority SET DEFAULT 'Normal';
+-- 3. Ensure the columns still exist but are just strings/text
+-- (They are already text, so dropping FK is enough)
 
--- 4. Temporarily disable RLS for testing
+-- 4. Re-disable RLS just to be sure
 ALTER TABLE orders DISABLE ROW LEVEL SECURITY;
 ALTER TABLE order_lines DISABLE ROW LEVEL SECURITY;
 ALTER TABLE equipment DISABLE ROW LEVEL SECURITY;
 ALTER TABLE items DISABLE ROW LEVEL SECURITY;
-ALTER TABLE profiles DISABLE ROW LEVEL SECURITY;
-
--- 5. Add a dummy equipment if needed (ignore FK for now by making it nullable)
-ALTER TABLE orders ALTER COLUMN equipment_id DROP NOT NULL;
-INSERT INTO equipment (mobile_id, brand, model)
-VALUES ('TEST-001', 'Caterpillar', '320D')
-ON CONFLICT DO NOTHING;

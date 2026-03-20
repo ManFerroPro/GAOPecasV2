@@ -1,3 +1,11 @@
+import { 
+  Search, 
+  Filter,
+  ClipboardCheck
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { createClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers";
 import OrderValidationItem from "@/components/validacao/OrderValidationItem";
 
 export default async function ValidationPage() {
