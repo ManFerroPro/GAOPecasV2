@@ -1,12 +1,4 @@
-import { 
-  Search, 
-  Filter,
-  ClipboardCheck
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import MasterDetailRow from "@/components/shared/MasterDetailRow";
-import { createClient } from "@/utils/supabase/server";
-import { cookies } from "next/headers";
+import OrderValidationItem from "@/components/validacao/OrderValidationItem";
 
 export default async function ValidationPage() {
   const cookieStore = await cookies();
@@ -17,7 +9,7 @@ export default async function ValidationPage() {
     .from('orders')
     .select(`
       *,
-      equipment:equipment_id(name)
+      equipment:equipment_id(brand, model)
     `)
     .eq('status', 'Submetido')
     .order('priority', { ascending: false })
@@ -26,8 +18,8 @@ export default async function ValidationPage() {
   const mappedOrders = orders?.map(o => ({
     id: o.id,
     orderNumber: o.order_number || o.id.slice(0, 8),
-    equipment: (o.equipment as any)?.name || "N/A",
-    requester: "Técnico Local", // Placeholder until profile join is fixed
+    equipment: o.equipment ? `${(o.equipment as any).brand} ${(o.equipment as any).model}` : "N/A",
+    requester: "Técnico Local", 
     priority: o.priority as any,
     date: new Date(o.created_at).toLocaleDateString(),
     status: o.status,
@@ -71,11 +63,13 @@ export default async function ValidationPage() {
         <div className="divide-y dark:divide-zinc-800">
           {mappedOrders.length > 0 ? (
             mappedOrders.map((order) => (
-              <MasterDetailRow key={order.id} order={order}>
-                <div className="p-4 bg-zinc-50 dark:bg-zinc-800/30 rounded-lg">
-                   <p className="text-sm text-zinc-500 italic">Analise as linhas deste pedido para aprovação ou rejeição.</p>
+              <OrderValidationItem key={order.id} order={order}>
+                <div className="p-4 bg-zinc-100/30 dark:bg-zinc-800/20 rounded-lg border dark:border-zinc-800/50">
+                   <p className="text-xs text-zinc-500">
+                     Este pedido está a aguardar validação local. Analise o equipamento e a urgência antes de aprovar.
+                   </p>
                 </div>
-              </MasterDetailRow>
+              </OrderValidationItem>
             ))
           ) : (
             <div className="flex flex-col items-center justify-center p-20 text-center space-y-4">
