@@ -17,7 +17,8 @@ export default async function ValidationPage() {
     .from('orders')
     .select(`
       *,
-      equipment:equipment_id(brand, model)
+      equipment:equipment_id(brand, model),
+      order_lines(*)
     `)
     .eq('status', 'Submetido')
     .order('priority', { ascending: false })
@@ -31,7 +32,8 @@ export default async function ValidationPage() {
     priority: o.priority as any,
     date: new Date(o.created_at).toLocaleDateString(),
     status: o.status,
-    teamsLink: o.teams_link
+    teamsLink: o.teams_link,
+    lines: o.order_lines || []
   })) || [];
 
   return (
@@ -72,10 +74,31 @@ export default async function ValidationPage() {
           {mappedOrders.length > 0 ? (
             mappedOrders.map((order) => (
               <OrderValidationItem key={order.id} order={order}>
-                <div className="p-4 bg-zinc-100/30 dark:bg-zinc-800/20 rounded-lg border dark:border-zinc-800/50">
-                   <p className="text-xs text-zinc-500">
-                     Este pedido está a aguardar validação local. Analise o equipamento e a urgência antes de aprovar.
-                   </p>
+                <div className="p-4 space-y-4">
+                  <div className="grid grid-cols-4 gap-4 pb-2 border-b dark:border-zinc-800 text-[10px] font-bold text-zinc-400 uppercase">
+                    <span className="col-span-2 text-blue-600 dark:text-blue-400">Descrição do Artigo</span>
+                    <span>Qtd</span>
+                    <span className="text-right">Ação Line-by-Line</span>
+                  </div>
+                  {order.lines.map((line: any) => (
+                    <div key={line.id} className="grid grid-cols-4 gap-4 items-center">
+                      <div className="col-span-2 flex flex-col">
+                        <span className="text-xs font-medium">{line.item_name || "Artigo sem nome"}</span>
+                        {line.requested_item_code && (
+                          <span className="text-[10px] font-mono text-zinc-500">{line.requested_item_code}</span>
+                        )}
+                      </div>
+                      <span className="text-xs">{line.requested_qty} UN</span>
+                      <div className="flex justify-end gap-2">
+                         <span className="text-[10px] px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 rounded text-zinc-500 uppercase">
+                           Aguardando
+                         </span>
+                      </div>
+                    </div>
+                  ))}
+                  {order.lines.length === 0 && (
+                    <p className="text-xs italic text-zinc-500">Sem artigos listados.</p>
+                  )}
                 </div>
               </OrderValidationItem>
             ))
