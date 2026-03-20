@@ -1,10 +1,13 @@
+"use client";
+
 import { useState } from "react";
 import EquipmentSelector from "@/components/requisicao/EquipmentSelector";
 import ItemManager from "@/components/requisicao/ItemManager";
-import { Save, Send, CheckCircle2, ArrowRight } from "lucide-react";
+import { Save, Send, CheckCircle2, ArrowRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { generateOrderNumber, getNextSequence } from "@/lib/utils/sequencer";
 import Link from "next/link";
+import { createOrder } from "./actions";
 
 export default function RequisitionPage() {
   const [equipment, setEquipment] = useState<any>(null);
@@ -13,17 +16,33 @@ export default function RequisitionPage() {
   const [teamsLink, setTeamsLink] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [finalOrderNumber, setFinalOrderNumber] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const generateTempId = () => `DRAFT-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
   const [tempId] = useState(generateTempId());
 
   const canSubmit = equipment && items.length > 0;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!canSubmit) return;
-    const orderNum = generateOrderNumber(getNextSequence());
-    setFinalOrderNumber(orderNum);
-    setIsSubmitted(true);
+    
+    setIsSubmitting(true);
+    try {
+      const order = await createOrder({
+        equipmentId: equipment.id,
+        priority,
+        items,
+        teamsLink
+      });
+      
+      setFinalOrderNumber(order.order_number || order.id.slice(0, 8));
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error("Erro ao submeter:", error);
+      alert("Erro ao submeter o pedido. Verifique a consola ou as permissões RLS.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (isSubmitted) {
@@ -72,17 +91,21 @@ export default function RequisitionPage() {
             <span>Gravar Rascunho</span>
           </button>
           <button 
-            disabled={!canSubmit}
+            disabled={!canSubmit || isSubmitting}
             onClick={handleSubmit}
             className={cn(
-              "flex items-center gap-2 px-6 py-2 rounded-lg font-semibold transition-all",
-              canSubmit 
+              "flex items-center gap-2 px-6 py-2 rounded-lg font-semibold transition-all min-w-[160px] justify-center",
+              canSubmit && !isSubmitting
                 ? "bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-md shadow-blue-500/20" 
                 : "bg-zinc-200 dark:bg-zinc-800 text-zinc-400 cursor-not-allowed"
             )}
           >
-            <Send className="h-4 w-4" />
-            <span>Submeter Pedido</span>
+            {isSubmitting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+            <span>{isSubmitting ? "A enviar..." : "Submeter Pedido"}</span>
           </button>
         </div>
       </div>
