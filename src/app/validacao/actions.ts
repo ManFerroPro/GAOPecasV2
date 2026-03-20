@@ -1,9 +1,12 @@
-"use client";
+"use server";
 
-import { createClient } from "@/utils/supabase/client";
+import { createClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
 
 export async function updateOrderStatus(orderId: string, status: string, notes?: string) {
-  const supabase = createClient();
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
 
   const { error } = await supabase
     .from("orders")
@@ -15,6 +18,9 @@ export async function updateOrderStatus(orderId: string, status: string, notes?:
     .eq("id", orderId);
 
   if (error) throw error;
+  
+  revalidatePath("/validacao");
+  revalidatePath("/");
   
   return { success: true };
 }

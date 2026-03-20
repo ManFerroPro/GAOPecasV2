@@ -14,7 +14,7 @@ export async function createOrder(orderData: {
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .insert({
-      equipment_id: orderData.equipmentId,
+      equipment_id: orderData.equipmentId || null, 
       priority: orderData.priority,
       status: "Submetido",
       teams_link: orderData.teamsLink,
