@@ -32,7 +32,7 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
     family_id: initialData?.family_id || "",
     sub_family_id: initialData?.sub_family_id || "",
     unit: initialData?.unit || "UN",
-    notes: initialData?.notes || "",
+    notes: initialData?.internal_notes || "",
   });
 
   const [partNumbers, setPartNumbers] = useState<any[]>(

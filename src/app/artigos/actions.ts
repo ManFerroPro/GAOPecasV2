@@ -19,6 +19,7 @@ export async function upsertArticle(article: any, partNumbers: any[]) {
       family: article.family?.toUpperCase(), // Legacy field support
       sub_family: article.sub_family?.toUpperCase(), // Legacy field support
       unit: article.unit.toUpperCase(),
+      internal_notes: article.notes?.toUpperCase(),
       updated_at: new Date().toISOString()
     })
     .select()
