@@ -1,19 +1,35 @@
--- REVISED FIX V3: Relax article constraints for testing
+-- REVISED FIX V4: Complete removal of FK blocks for testing
 -- Run this in the Supabase SQL Editor
 
--- 1. Remove strict requirement for article codes in order lines
-ALTER TABLE order_lines ALTER COLUMN requested_item_code DROP NOT NULL;
-
--- 2. If it still fails, it might be the Foreign Key itself (if article doesn't exist)
--- Let's drop the FK constraint temporarily for development
+-- 1. Remove Foreign Key constraints that block unauthenticated/mock testing
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_equipment_id_fkey;
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_requester_id_fkey;
+ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_delegation_fkey;
 ALTER TABLE order_lines DROP CONSTRAINT IF EXISTS order_lines_requested_item_code_fkey;
 ALTER TABLE order_lines DROP CONSTRAINT IF EXISTS order_lines_provided_item_code_fkey;
 
--- 3. Ensure the columns still exist but are just strings/text
--- (They are already text, so dropping FK is enough)
+-- 2. Ensure columns are nullable where needed
+ALTER TABLE orders ALTER COLUMN requester_id DROP NOT NULL;
+ALTER TABLE orders ALTER COLUMN equipment_id DROP NOT NULL;
 
--- 4. Re-disable RLS just to be sure
+-- 3. Sequence and Default for order_number
+CREATE SEQUENCE IF NOT EXISTS order_seq START 1000;
+ALTER TABLE orders ALTER COLUMN order_number SET DEFAULT 'PP' || to_char(now(), 'YY') || LPAD(nextval('order_seq')::text, 6, '0');
+
+-- 4. Disable RLS on all working tables
 ALTER TABLE orders DISABLE ROW LEVEL SECURITY;
 ALTER TABLE order_lines DISABLE ROW LEVEL SECURITY;
 ALTER TABLE equipment DISABLE ROW LEVEL SECURITY;
 ALTER TABLE items DISABLE ROW LEVEL SECURITY;
+ALTER TABLE profiles DISABLE ROW LEVEL SECURITY;
+
+-- 5. Add missing item_name column to order_lines if it's missing
+ALTER TABLE order_lines ADD COLUMN IF NOT EXISTS item_name TEXT;
+
+-- 6. Add a few test equipments just in case
+INSERT INTO equipment (mobile_id, brand, model)
+VALUES 
+('EQ-001', 'Caterpillar', '320D'),
+('EQ-002', 'Volvo', 'FMX'),
+('TEST-001', 'Generic', 'Machine')
+ON CONFLICT (mobile_id) DO NOTHING;

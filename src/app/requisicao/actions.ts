@@ -27,9 +27,9 @@ export async function createOrder(orderData: {
   // 2. Insert item lines
   const lines = orderData.items.map(item => ({
     order_id: order.id,
-    item_name: item.name,
-    quantity: item.quantity,
-    status: "Pendente"
+    item_name: item.name, 
+    requested_qty: item.quantity,
+    status: "Pending"
   }));
 
   const { error: linesError } = await supabase

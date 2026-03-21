@@ -11,7 +11,8 @@ import {
   ShieldCheck, 
   Truck, 
   ShoppingCart, 
-  PackageCheck 
+  PackageCheck,
+  Box
 } from "lucide-react";
 
 const navigation = [
@@ -22,6 +23,8 @@ const navigation = [
   { name: "Transferências", href: "/transferencias", icon: Truck },
   { name: "Compras", href: "/compras", icon: ShoppingCart },
   { name: "Receção", href: "/rececao", icon: PackageCheck },
+  { name: "Artigos", href: "/artigos", icon: Box },
+  { name: "Equipamentos", href: "/equipamentos", icon: Truck },
 ];
 
 export default function Header() {
