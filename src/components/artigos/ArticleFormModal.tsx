@@ -32,6 +32,7 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
     family_id: initialData?.family_id || "",
     sub_family_id: initialData?.sub_family_id || "",
     unit: initialData?.unit || "UN",
+    notes: initialData?.notes || "",
   });
 
   const [partNumbers, setPartNumbers] = useState<any[]>(
@@ -104,183 +105,185 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
 
   return (
     <div className="fixed inset-0 z-[150] flex flex-col items-center justify-center p-6 bg-zinc-950/80 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="bg-white dark:bg-zinc-900 rounded-[3rem] w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border-2 border-zinc-100 dark:border-zinc-800">
+      <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] w-full max-w-7xl h-[85vh] flex flex-col overflow-hidden border-2 border-zinc-100 dark:border-zinc-800">
         
         {/* Header */}
-        <div className="p-10 border-b-2 border-zinc-50 dark:border-zinc-800 flex items-center justify-between">
+        <div className="p-8 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50">
           <div>
-            <h3 className="text-3xl font-black italic tracking-tighter uppercase text-zinc-900 dark:text-zinc-100">
-               {initialData ? "Ficha do Artigo" : "Criação de Artigo"}
+            <h3 className="text-2xl font-black italic tracking-tighter uppercase text-zinc-900 dark:text-zinc-100">
+               {initialData ? (
+                 <>EDITAR: <span className="text-blue-600">{initialData.omatapalo_code}</span></>
+               ) : (
+                 "NOVO ARTIGO"
+               )}
             </h3>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Configuração de Mestre de Dados</p>
           </div>
-          <button onClick={() => onClose()} className="p-4 bg-zinc-50 dark:bg-zinc-800 rounded-full hover:scale-110 transition-all">
-            <X className="h-6 w-6 text-zinc-400" />
+          <button onClick={() => onClose()} className="p-3 bg-white dark:bg-zinc-800 rounded-full hover:scale-110 transition-all border border-zinc-100 dark:border-zinc-700">
+            <X className="h-5 w-5 text-zinc-400" />
           </button>
         </div>
 
-        {/* Scrollable Form Content - VERTICAL STACK */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-auto p-12 space-y-16 custom-scrollbar">
+        {/* Content */}
+        <form onSubmit={handleSubmit} className="flex-1 flex overflow-hidden">
           
-          {/* Section 1: Dados Principais */}
-          <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-300">
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase text-blue-600 tracking-[0.2em]">
-               <span className="w-2 h-2 rounded-full bg-blue-600" />
-               1. Dados Principais do Artigo
+          {/* Left Panel: Primary Data */}
+          <div className="w-[380px] border-r border-zinc-100 dark:border-zinc-800 px-6 py-8 space-y-6 overflow-hidden">
+            <div className="flex items-center justify-between h-10 mb-8 px-1">
+               <div className="text-[10px] font-black uppercase text-blue-600 tracking-[0.2em]">
+                  1. ATRIBUTOS BASE
+               </div>
+               <button type="button" onClick={() => setIsHierarchyModalOpen(true)} className="p-2 border border-zinc-100 dark:border-zinc-800 rounded-lg text-zinc-400 hover:text-blue-600 transition-colors">
+                  <ListTree className="h-4 w-4" />
+               </button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase text-zinc-300 tracking-widest pl-1">Código Omatapalo*</label>
-                <input 
-                  required
-                  disabled={!!initialData}
-                  placeholder="MF01020338"
-                  className="w-full px-6 py-5 rounded-[1.5rem] border-2 border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 outline-none focus:border-blue-600 transition-all text-sm font-black italic tracking-tighter uppercase disabled:opacity-40"
-                  value={formData.omatapalo_code}
-                  onChange={(e) => setFormData({...formData, omatapalo_code: e.target.value.toUpperCase()})}
-                />
+            <div className="space-y-4">
+              <div className="flex gap-4">
+                <div className="flex-1 space-y-1.5">
+                  <label className="text-[9px] font-black uppercase text-zinc-400 tracking-widest pl-1">CÓDIGO OMATAPALO*</label>
+                  <input 
+                    required
+                    disabled={!!initialData}
+                    className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 outline-none focus:border-blue-600 transition-all text-[12px] font-black italic tracking-tighter uppercase text-blue-600 disabled:opacity-50"
+                    value={formData.omatapalo_code}
+                    onChange={(e) => setFormData({...formData, omatapalo_code: e.target.value.toUpperCase()})}
+                  />
+                </div>
+                <div className="w-24 space-y-1.5">
+                  <label className="text-[9px] font-black uppercase text-zinc-400 tracking-widest pl-1">UN</label>
+                  <select className="w-full px-3 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-[11px] font-black uppercase" value={formData.unit} onChange={(e) => setFormData({...formData, unit: e.target.value})}>
+                    <option value="UN">UN</option>
+                    <option value="LT">LT</option>
+                    <option value="KG">KG</option>
+                    <option value="MT">MT</option>
+                    <option value="CJ">CJ</option>
+                  </select>
+                </div>
               </div>
 
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase text-zinc-300 tracking-widest pl-1">Unidade</label>
-                <select 
-                  className="w-full px-6 py-5 rounded-[1.5rem] border-2 border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 outline-none focus:border-blue-600 transition-all text-sm font-black uppercase"
-                  value={formData.unit}
-                  onChange={(e) => setFormData({...formData, unit: e.target.value})}
-                >
-                  <option value="UN">UN (Unidade)</option>
-                  <option value="LT">LT (Litros)</option>
-                  <option value="KG">KG (Quilos)</option>
-                  <option value="MT">MT (Metros)</option>
-                  <option value="CJ">CJ (Conjunto)</option>
-                </select>
-              </div>
-
-              <div className="space-y-3 md:col-span-2">
-                <label className="text-[10px] font-black uppercase text-zinc-300 tracking-widest pl-1">Descrição do Item*</label>
-                <input 
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black uppercase text-zinc-400 tracking-widest pl-1">DESCRIÇÃO COMERCIAL*</label>
+                <textarea 
                   required
-                  placeholder="EX: FILTRO OLEO VOLVO..."
-                  className="w-full px-6 py-5 rounded-[1.5rem] border-2 border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 outline-none focus:border-blue-600 transition-all text-sm font-bold uppercase"
+                  rows={2}
+                  className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 outline-none focus:border-blue-600 transition-all text-[11px] font-bold uppercase resize-none leading-normal"
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value.toUpperCase()})}
                 />
               </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between px-1">
-                  <label className="text-[10px] font-black uppercase text-zinc-300 tracking-widest">Família / Categoria</label>
-                  <button type="button" onClick={() => setIsHierarchyModalOpen(true)} className="text-[10px] font-black text-blue-600 hover:underline">GERIR +</button>
-                </div>
-                <select className="w-full px-6 py-5 rounded-[1.5rem] border-2 border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-sm font-black uppercase outline-none focus:border-blue-600" value={formData.family_id} onChange={(e) => setFormData({...formData, family_id: e.target.value, sub_family_id: ""})}>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black uppercase text-zinc-400 tracking-widest pl-1">FAMÍLIA</label>
+                <select className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-[11px] font-black uppercase outline-none focus:border-blue-600" value={formData.family_id} onChange={(e) => setFormData({...formData, family_id: e.target.value, sub_family_id: ""})}>
                   <option value="">SELECIONAR...</option>
                   {families.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
               </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center justify-between px-1">
-                  <label className="text-[10px] font-black uppercase text-zinc-300 tracking-widest">Sub-Família</label>
-                  <button type="button" onClick={() => setIsHierarchyModalOpen(true)} className="text-[10px] font-black text-blue-600 hover:underline">GERIR +</button>
-                </div>
-                <select disabled={!formData.family_id} className="w-full px-6 py-5 rounded-[1.5rem] border-2 border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-sm font-black uppercase outline-none focus:border-blue-600 disabled:opacity-30" value={formData.sub_family_id} onChange={(e) => setFormData({...formData, sub_family_id: e.target.value})}>
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black uppercase text-zinc-400 tracking-widest pl-1">SUB-FAMÍLIA</label>
+                <select disabled={!formData.family_id} className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-[11px] font-black uppercase outline-none focus:border-blue-600 disabled:opacity-30" value={formData.sub_family_id} onChange={(e) => setFormData({...formData, sub_family_id: e.target.value})}>
                   <option value="">SELECIONAR...</option>
                   {subFamilies.map(sf => <option key={sf.id} value={sf.id}>{sf.name}</option>)}
                 </select>
               </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[9px] font-black uppercase text-zinc-400 tracking-widest pl-1">OBSERVAÇÕES DO ARTIGO</label>
+                <textarea 
+                  rows={3}
+                  className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 outline-none focus:border-blue-600 transition-all text-[11px] font-bold uppercase resize-none leading-normal"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({...formData, notes: e.target.value.toUpperCase()})}
+                  placeholder="ESCREVA AQUI INFORMAÇÕES ADICIONAIS..."
+                />
+              </div>
             </div>
           </div>
 
-          {/* Section 2: Part-Numbers Alternativos */}
-          <div className="space-y-8 animate-in slide-in-from-bottom-6 duration-400">
-             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 tracking-[0.2em]">
-                   <span className="w-2 h-2 rounded-full bg-amber-500" />
-                   2. Referências Cruzadas / Part-Numbers
-                </div>
-                <div className="flex gap-4">
-                   <button type="button" onClick={() => setIsBrandModalOpen(true)} className="px-5 py-2 border-2 border-zinc-100 dark:border-zinc-800 rounded-xl text-[9px] font-black tracking-widest uppercase hover:bg-zinc-50">NOVA MARCA +</button>
-                   <button type="button" onClick={addPartNumber} className="px-5 py-2 bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 rounded-xl text-[9px] font-black tracking-widest uppercase hover:scale-105 transition-all">ADICIONAR PN +</button>
-                </div>
-             </div>
+          {/* Right Panel */}
+          <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-zinc-950">
+            <div className="flex-1 p-8 pt-10 flex flex-col min-h-0 overflow-hidden">
+               <div className="flex items-center justify-between h-10 mb-8">
+                  <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 tracking-[0.2em]">
+                     2. REFERÊNCIAS FABRICANTE
+                  </div>
+                  <div className="flex gap-3">
+                     <button type="button" onClick={() => setIsBrandModalOpen(true)} className="px-5 py-2.5 border border-zinc-200 rounded-xl text-[9px] font-black uppercase hover:bg-zinc-50">CRIAR MARCA</button>
+                     <button type="button" onClick={addPartNumber} className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-[9px] font-black uppercase hover:scale-105 transition-all">ADICIONAR PN +</button>
+                  </div>
+               </div>
 
-             <div className="max-h-[300px] overflow-auto rounded-[2rem] border-2 border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-950 custom-scrollbar">
-                <table className="w-full text-left border-collapse">
-                  <thead className="sticky top-0 bg-white dark:bg-zinc-900 border-b-2 border-zinc-100 dark:border-zinc-800 z-10">
-                    <tr className="text-[10px] uppercase font-black text-zinc-300 tracking-[0.1em]">
-                      <th className="px-8 py-5">Fabricante</th>
-                      <th className="px-8 py-5">PN Original / Alternativo</th>
-                      <th className="px-8 py-5">Observações Técnicas</th>
-                      <th className="px-8 py-5 text-right">Ação</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y-2 border-zinc-50 dark:border-zinc-800">
-                    {partNumbers.map((pn, index) => (
-                      <tr key={index} className="group hover:bg-zinc-50/50 dark:hover:bg-zinc-900/40">
-                        <td className="px-8 py-4">
-                           <select required className="bg-transparent border-none outline-none text-xs font-black uppercase italic text-zinc-600 dark:text-zinc-300 w-full" value={pn.brand_id} onChange={(e) => updatePartNumber(index, 'brand_id', e.target.value)}>
-                              <option value="">ESCOLHER...</option>
-                              {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                           </select>
-                        </td>
-                        <td className="px-8 py-4">
-                           <input required placeholder="REFERÊNCIA..." className="bg-transparent border-none outline-none text-xs font-black uppercase text-blue-600 w-full tracking-tighter" value={pn.part_number} onChange={(e) => updatePartNumber(index, 'part_number', e.target.value.toUpperCase())} />
-                        </td>
-                        <td className="px-8 py-4">
-                           <input placeholder="NOTA..." className="bg-transparent border-none outline-none text-[11px] font-bold uppercase text-zinc-400 w-full" value={pn.description} onChange={(e) => updatePartNumber(index, 'description', e.target.value.toUpperCase())} />
-                        </td>
-                        <td className="px-8 py-4 text-right">
-                           <button type="button" onClick={() => removePartNumber(index)} className="p-2 text-zinc-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 className="h-4 w-4" /></button>
-                        </td>
+               <div className="flex-1 overflow-auto rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/10 custom-scrollbar">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="sticky top-0 bg-zinc-50 dark:bg-zinc-900 border-b-2 border-zinc-100 dark:border-zinc-800 z-10">
+                      <tr className="text-[10px] uppercase font-black text-zinc-500 tracking-[0.1em]">
+                        <th className="px-6 py-3 font-black">FABRICANTE</th>
+                        <th className="px-6 py-3 font-black">PART-NUMBER</th>
+                        <th className="px-6 py-3 font-black">OBSERVAÇÕES</th>
+                        <th className="px-6 py-3 text-right">AÇÃO</th>
                       </tr>
-                    ))}
-                    {partNumbers.length === 0 && (
-                      <tr><td colSpan={4} className="px-8 py-10 text-center text-[10px] font-bold text-zinc-300 uppercase tracking-widest italic">Nenhuma referência alternativa adicionada.</td></tr>
-                    )}
-                  </tbody>
-                </table>
-             </div>
-          </div>
+                    </thead>
+                    <tbody className="divide-y border-zinc-50">
+                      {partNumbers.map((pn, index) => (
+                        <tr key={index} className="group hover:bg-zinc-50/50">
+                          <td className="px-6 py-2.5">
+                             <select required className="bg-transparent border-none outline-none text-[11px] font-black uppercase italic text-zinc-600 w-full" value={pn.brand_id} onChange={(e) => updatePartNumber(index, 'brand_id', e.target.value)}>
+                                <option value="">...</option>
+                                {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                             </select>
+                          </td>
+                          <td className="px-6 py-2.5">
+                             <input required placeholder="REFERÊNCIA" className="bg-transparent border-none outline-none text-[11px] font-black uppercase text-blue-600 w-full tracking-tighter" value={pn.part_number} onChange={(e) => updatePartNumber(index, 'part_number', e.target.value.toUpperCase())} />
+                          </td>
+                          <td className="px-6 py-2.5">
+                             <input placeholder="NOTA" className="bg-transparent border-none outline-none text-[10px] font-bold uppercase text-zinc-400 w-full" value={pn.description} onChange={(e) => updatePartNumber(index, 'description', e.target.value.toUpperCase())} />
+                          </td>
+                          <td className="px-6 py-2.5 text-right">
+                             <button type="button" onClick={() => removePartNumber(index)} className="p-1.5 text-zinc-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 className="h-4 w-4" /></button>
+                          </td>
+                        </tr>
+                      ))}
+                      {partNumbers.length === 0 && (
+                        <tr><td colSpan={4} className="px-8 py-10 text-center text-[10px] font-bold text-zinc-300 uppercase tracking-widest italic">Sem referências.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+               </div>
+            </div>
 
-          {/* Section 3: Anexos Visuais */}
-          <div className="space-y-8 animate-in slide-in-from-bottom-8 duration-500">
-             <div className="flex items-center gap-2 text-[10px] font-black uppercase text-green-600 tracking-[0.2em]">
-                <span className="w-2 h-2 rounded-full bg-green-500" />
-                3. Anexos & Mídia Técnico
-             </div>
-             
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div className="p-10 rounded-[2.5rem] border-2 border-dashed border-zinc-100 dark:border-zinc-800 flex flex-col items-center justify-center gap-4 group cursor-pointer hover:border-blue-300 hover:bg-blue-50/10 transition-all">
-                   <div className="p-4 bg-blue-50 dark:bg-blue-900/30 text-blue-500 rounded-2xl group-hover:scale-110 transition-all"><ImageIcon className="h-8 w-8" /></div>
-                   <div className="text-center">
-                     <p className="text-[11px] font-black uppercase tracking-widest">Carregar Fotos</p>
-                     <p className="text-[9px] font-bold text-zinc-300 uppercase mt-1">IMAGENS DO ARTIGO</p>
-                   </div>
-                </div>
-
-                <div className="p-10 rounded-[2.5rem] border-2 border-dashed border-zinc-100 dark:border-zinc-800 flex flex-col items-center justify-center gap-4 group cursor-pointer hover:border-green-300 hover:bg-green-50/10 transition-all">
-                   <div className="p-4 bg-green-50 dark:bg-green-900/30 text-green-600 rounded-2xl group-hover:scale-110 transition-all"><Paperclip className="h-8 w-8" /></div>
-                   <div className="text-center">
-                     <p className="text-[11px] font-black uppercase tracking-widest">Documentos PDF</p>
-                     <p className="text-[9px] font-bold text-zinc-300 uppercase mt-1">FICHAS TÉCNICAS / NOTAS</p>
-                   </div>
-                </div>
-             </div>
+            <div className="px-8 pb-8 pt-2 bg-white flex gap-4">
+               <div className="flex-1 p-5 rounded-2xl border-2 border-dashed border-zinc-100 dark:border-zinc-800 flex items-center gap-4 group cursor-pointer hover:border-blue-400 transition-all">
+                  <div className="p-3 bg-blue-50 text-blue-500 rounded-xl"><ImageIcon className="h-5 w-5" /></div>
+                  <div>
+                     <p className="text-[10px] font-black uppercase">FOTOS DO ARTIGO</p>
+                     <p className="text-[8px] font-bold text-zinc-300 mt-0.5 whitespace-nowrap">CARREGAR IMAGENS</p>
+                  </div>
+               </div>
+               <div className="flex-1 p-5 rounded-2xl border-2 border-dashed border-zinc-100 dark:border-zinc-800 flex items-center gap-4 group cursor-pointer hover:border-green-400 transition-all">
+                  <div className="p-3 bg-green-50 text-green-600 rounded-xl"><Paperclip className="h-5 w-5" /></div>
+                  <div>
+                     <p className="text-[10px] font-black uppercase">DOCUMENTAÇÃO</p>
+                     <p className="text-[8px] font-bold text-zinc-300 mt-0.5 whitespace-nowrap">NOTAS / PDF / FICHAS</p>
+                  </div>
+               </div>
+            </div>
           </div>
         </form>
 
-        {/* Footer */}
-        <div className="p-10 border-t-2 border-zinc-50 dark:border-zinc-800 bg-white dark:bg-zinc-950 flex justify-end gap-6 text-[10px] items-center">
-          <button type="button" onClick={() => onClose()} className="font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900 transition-colors">Abortar Operação</button>
-          <button 
-            type="submit" 
-            onClick={handleSubmit} 
-            disabled={isSubmitting} 
-            className="px-12 py-5 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-[1.5rem] font-black uppercase tracking-[0.2em] hover:scale-105 transition-all disabled:opacity-30"
-          >
-            {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Gravar Tudo no Banco"}
-          </button>
+        <div className="px-10 py-6 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50">
+          <span className="text-[9px] font-black text-zinc-300 uppercase tracking-widest italic">* CAMPOS OBRIGATÓRIOS</span>
+          <div className="flex items-center gap-8">
+            <button type="button" onClick={() => onClose()} className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900">CANCELAR</button>
+            <button 
+              type="submit" 
+              onClick={handleSubmit} 
+              disabled={isSubmitting} 
+              className="px-8 py-2.5 bg-blue-600 text-white rounded-xl font-black uppercase text-[10px] tracking-[0.1em] shadow-lg shadow-blue-600/20 hover:scale-[1.02] transition-all disabled:opacity-30"
+            >
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "GRAVAR ARTIGO"}
+            </button>
+          </div>
         </div>
       </div>
 
