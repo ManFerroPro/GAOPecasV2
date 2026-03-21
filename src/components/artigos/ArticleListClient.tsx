@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { Search, Filter, Plus, Edit2, Trash2, Loader2, MessageSquare, Image, Paperclip, Upload, X, MoreVertical } from "lucide-react";
+import React, { useState, useRef, useLayoutEffect } from "react";
 import ArticleFormModal from "./ArticleFormModal";
 import BulkImportModal from "./BulkImportModal";
 import ArticleCommentsPanel from "./ArticleCommentsPanel";
@@ -23,7 +23,22 @@ export default function ArticleListClient({ initialItems }: ArticleListClientPro
   const [overlayType, setOverlayType] = useState<'images' | 'docs' | null>(null);
   const [openMenuCode, setOpenMenuCode] = useState<string | null>(null);
 
-  const isAdmin = true; 
+  const isAdmin = true;
+
+  const handleDelete = async (code: string) => {
+    if (!confirm("⚠️ Eliminar artigo?")) return;
+    setIsDeleting(code);
+    try {
+      await deleteArticle(code);
+      setItems(items.filter(i => i.omatapalo_code !== code));
+      if (selectedItem?.omatapalo_code === code) setSelectedItem(null);
+    } catch (error) {
+       alert("Erro.");
+    } finally {
+      setIsDeleting(null);
+      setOpenMenuCode(null);
+    }
+  };
 
   const filteredItems = items.filter(item => {
     const term = searchTerm.toLowerCase();
@@ -40,21 +55,6 @@ export default function ArticleListClient({ initialItems }: ArticleListClientPro
 
     return matchesMain || matchesPN;
   });
-
-  const handleDelete = async (code: string) => {
-    if (!confirm("⚠️ Eliminar artigo?")) return;
-    setIsDeleting(code);
-    try {
-      await deleteArticle(code);
-      setItems(items.filter(i => i.omatapalo_code !== code));
-      if (selectedItem?.omatapalo_code === code) setSelectedItem(null);
-    } catch (error) {
-       alert("Erro.");
-    } finally {
-      setIsDeleting(null);
-      setOpenMenuCode(null);
-    }
-  };
 
   return (
     <div className="flex h-[calc(100vh-4rem)] -m-8 overflow-hidden bg-white dark:bg-zinc-950 font-sans">
@@ -111,88 +111,21 @@ export default function ArticleListClient({ initialItems }: ArticleListClientPro
             </thead>
             <tbody className="divide-y-2 border-zinc-100 dark:border-zinc-800 overflow-visible">
               {filteredItems.map((item) => (
-                <tr 
-                  key={item.omatapalo_code} 
-                  className={cn(
-                    "hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-all group cursor-pointer",
-                    selectedItem?.omatapalo_code === item.omatapalo_code && "bg-zinc-50 dark:bg-zinc-900"
-                  )}
-                  onClick={() => { setSelectedItem(item); setOpenMenuCode(null); }}
-                >
-                  <td className="px-8 py-5 align-top">
-                    <div className="space-y-3">
-                      <span className="font-mono font-black text-blue-600 dark:text-blue-500 text-[14px] tracking-[0.15em]">
-                        {item.omatapalo_code}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {item.item_attachments?.some((a:any) => a.file_type === 'image') && (
-                          <button onClick={(e) => { e.stopPropagation(); setOverlayType('images'); }} className="text-blue-500 hover:scale-110 transition-all"><Image className="h-3.5 w-3.5" /></button>
-                        )}
-                        {item.item_attachments?.some((a:any) => a.file_type === 'document') && (
-                          <button onClick={(e) => { e.stopPropagation(); setOverlayType('docs'); }} className="text-green-600 hover:scale-110 transition-all"><Paperclip className="h-3.5 w-3.5" /></button>
-                        )}
-                        {(item.item_comments_count > 0) && (
-                          <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-8 py-5 align-top">
-                    <div className="space-y-0.5">
-                      <span className="text-zinc-400 font-black uppercase text-[8px] tracking-widest">{item.family_name}</span>
-                      <p className="text-[10px] text-zinc-900 dark:text-zinc-200 font-bold uppercase truncate">{item.sub_family_name}</p>
-                    </div>
-                  </td>
-                  <td className="px-8 py-5 align-top">
-                    <div className="space-y-3">
-                      <span className="font-black text-zinc-900 dark:text-zinc-100 text-[13px] uppercase leading-tight tracking-tight block">
-                        {item.description}
-                      </span>
-                      {item.item_part_numbers?.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5">
-                          {item.item_part_numbers.map((pn: any) => (
-                            <span key={pn.id} className="inline-flex items-center gap-2 px-2 py-1 rounded bg-zinc-100 dark:bg-zinc-800 text-[10px] font-bold text-zinc-500 border border-zinc-200/50 transition-all hover:border-zinc-300">
-                               <span className="opacity-40 font-black italic">{pn.brand_name}</span>
-                               <span className="text-zinc-800 dark:text-zinc-200">{pn.part_number}</span>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-8 py-5 align-top text-right">
-                    <span className="font-black text-[10px] text-zinc-400 uppercase">{item.unit || "UN"}</span>
-                  </td>
-                  <td className="px-8 py-5 text-right align-top relative" onClick={(e) => e.stopPropagation()}>
-                    <button 
-                      onClick={() => setOpenMenuCode(openMenuCode === item.omatapalo_code ? null : item.omatapalo_code)}
-                      className="p-2 text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-                    >
-                      <MoreVertical className="h-5 w-5" />
-                    </button>
-                    
-                    {openMenuCode === item.omatapalo_code && (
-                      <div className="absolute right-8 top-12 w-40 bg-white dark:bg-zinc-900 border-2 border-zinc-100 dark:border-zinc-800 rounded-2xl shadow-xl z-[50] overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-                         <button 
-                           onClick={() => { setEditingItem(item); setIsModalOpen(true); setOpenMenuCode(null); }}
-                           className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-                         >
-                           <Edit2 className="h-3.5 w-3.5" />
-                           Editar
-                         </button>
-                         {isAdmin && (
-                           <button 
-                             onClick={() => handleDelete(item.omatapalo_code)}
-                             className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors border-t border-zinc-50 dark:border-zinc-800"
-                           >
-                             <Trash2 className="h-3.5 w-3.5" />
-                             Eliminar
-                           </button>
-                         )}
-                      </div>
-                    )}
-                  </td>
-                </tr>
+                <ArticleRow 
+                  key={item.omatapalo_code}
+                  item={item}
+                  selectedItem={selectedItem}
+                  setSelectedItem={setSelectedItem}
+                  setEditingItem={setEditingItem}
+                  setIsModalOpen={setIsModalOpen}
+                  handleDelete={handleDelete}
+                  overlayType={overlayType}
+                  setOverlayType={setOverlayType}
+                  openMenuCode={openMenuCode}
+                  setOpenMenuCode={setOpenMenuCode}
+                  isAdmin={isAdmin}
+                  isDeleting={isDeleting === item.omatapalo_code}
+                />
               ))}
             </tbody>
           </table>
@@ -218,5 +151,120 @@ export default function ArticleListClient({ initialItems }: ArticleListClientPro
       {isModalOpen && <ArticleFormModal initialData={editingItem} onClose={(s) => { setIsModalOpen(false); setEditingItem(null); if (s) window.location.reload(); }} />}
       {isBulkModalOpen && <BulkImportModal onClose={(s) => { setIsBulkModalOpen(false); if (s) window.location.reload(); }} />}
     </div>
+  );
+}
+
+function ArticleRow({ 
+  item, selectedItem, setSelectedItem, setEditingItem, setIsModalOpen, handleDelete, 
+  overlayType, setOverlayType, openMenuCode, setOpenMenuCode, isAdmin, isDeleting 
+}: any) {
+  const noteRef = useRef<HTMLSpanElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  useLayoutEffect(() => {
+    if (noteRef.current) {
+      setIsTruncated(noteRef.current.scrollWidth > noteRef.current.clientWidth);
+    }
+  }, [item.internal_notes]);
+
+  return (
+    <tr 
+      key={item.omatapalo_code} 
+      className={cn(
+        "hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-all group cursor-pointer",
+        selectedItem?.omatapalo_code === item.omatapalo_code && "bg-zinc-50 dark:bg-zinc-900"
+      )}
+      onClick={() => { setSelectedItem(item); setOpenMenuCode(null); }}
+    >
+      <td className="px-8 py-5 align-top">
+        <div className="space-y-3">
+          <span className="font-mono font-black text-blue-600 dark:text-blue-500 text-[14px] tracking-[0.15em]">
+            {item.omatapalo_code}
+          </span>
+          <div className="flex items-center gap-2">
+            {item.item_attachments?.some((a:any) => a.file_type === 'image') && (
+              <button onClick={(e) => { e.stopPropagation(); setOverlayType('images'); }} className="text-blue-500 hover:scale-110 transition-all"><Image className="h-3.5 w-3.5" /></button>
+            )}
+            {item.item_attachments?.some((a:any) => a.file_type === 'document') && (
+              <button onClick={(e) => { e.stopPropagation(); setOverlayType('docs'); }} className="text-green-600 hover:scale-110 transition-all"><Paperclip className="h-3.5 w-3.5" /></button>
+            )}
+            {(item.item_comments_count > 0) && (
+              <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            )}
+          </div>
+        </div>
+      </td>
+      <td className="px-8 py-5 align-top">
+        <div className="space-y-0.5">
+          <span className="text-zinc-400 font-black uppercase text-[8px] tracking-widest">{item.family_name}</span>
+          <p className="text-[10px] text-zinc-900 dark:text-zinc-200 font-bold uppercase truncate">{item.sub_family_name}</p>
+        </div>
+      </td>
+      <td className="px-8 py-5 align-top">
+        <div className="space-y-1">
+          <span className="font-black text-zinc-900 dark:text-zinc-100 text-[13px] uppercase leading-tight tracking-tight block">
+            {item.description}
+          </span>
+
+          {item.internal_notes && (
+            <div className="text-[10px] text-zinc-500 flex items-center gap-1.5 overflow-hidden">
+              <span className="text-orange-600 font-black italic whitespace-nowrap">OBS:</span>
+              <span ref={noteRef} className="truncate flex-1 font-medium italic">{item.internal_notes}</span>
+              {isTruncated && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setEditingItem(item); setIsModalOpen(true); }}
+                  className="text-[9px] font-black text-blue-600 hover:underline whitespace-nowrap ml-1"
+                >
+                   ... VER MAIS
+                </button>
+              )}
+            </div>
+          )}
+
+          {item.item_part_numbers?.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 pt-0.5">
+              {item.item_part_numbers.map((pn: any) => (
+                <span key={pn.id} className="inline-flex items-center gap-2 px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-[10px] font-bold text-zinc-500 border border-zinc-200/50 transition-all hover:border-zinc-300">
+                   <span className="opacity-40 font-black italic">{pn.brand_name}</span>
+                   <span className="text-zinc-800 dark:text-zinc-200">{pn.part_number}</span>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </td>
+      <td className="px-8 py-5 align-top text-right">
+        <span className="font-black text-[10px] text-zinc-400 uppercase">{item.unit || "UN"}</span>
+      </td>
+      <td className="px-8 py-5 text-right align-top relative" onClick={(e) => e.stopPropagation()}>
+        <button 
+          onClick={() => setOpenMenuCode(openMenuCode === item.omatapalo_code ? null : item.omatapalo_code)}
+          className="p-2 text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+        >
+          <MoreVertical className="h-5 w-5" />
+        </button>
+        
+        {openMenuCode === item.omatapalo_code && (
+          <div className="absolute right-8 top-12 w-40 bg-white dark:bg-zinc-900 border-2 border-zinc-100 dark:border-zinc-800 rounded-2xl shadow-xl z-[50] overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+             <button 
+               onClick={() => { setEditingItem(item); setIsModalOpen(true); setOpenMenuCode(null); }}
+               className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+             >
+               <Edit2 className="h-3.5 w-3.5" />
+               Editar
+             </button>
+             {isAdmin && (
+               <button 
+                 onClick={() => handleDelete(item.omatapalo_code)}
+                 className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors border-t border-zinc-50 dark:border-zinc-800"
+               >
+                 <Trash2 className="h-3.5 w-3.5" />
+                 Eliminar
+               </button>
+             )}
+          </div>
+        )}
+      </td>
+    </tr>
   );
 }
