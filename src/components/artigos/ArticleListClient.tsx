@@ -1,7 +1,8 @@
 "use client";
 
 import { Search, Filter, Plus, Edit2, Trash2, Loader2, MessageSquare, Image, Paperclip, Upload, X, MoreVertical } from "lucide-react";
-import React, { useState, useRef, useLayoutEffect } from "react";
+import React, { useState, useRef, useLayoutEffect, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import ArticleFormModal from "./ArticleFormModal";
 import BulkImportModal from "./BulkImportModal";
 import ArticleCommentsPanel from "./ArticleCommentsPanel";
@@ -17,11 +18,24 @@ export default function ArticleListClient({ initialItems }: ArticleListClientPro
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchCode, setSearchCode] = useState("");
+  const [searchHierarchy, setSearchHierarchy] = useState("");
+  const [searchDesc, setSearchDesc] = useState("");
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
-  const [selectedItem, setSelectedItem] = useState<any>(initialItems[0] || null);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
   const [overlayType, setOverlayType] = useState<'images' | 'docs' | null>(null);
   const [openMenuCode, setOpenMenuCode] = useState<string | null>(null);
+  const router = useRouter();
+
+  // Sync state with server-side data when it's refreshed
+  useEffect(() => {
+    setItems(initialItems);
+    // Also update selected item if it exists and changed
+    if (selectedItem) {
+      const updated = initialItems.find(i => i.omatapalo_code === selectedItem.omatapalo_code);
+      if (updated) setSelectedItem(updated);
+    }
+  }, [initialItems]);
 
   const isAdmin = true;
 
@@ -41,20 +55,21 @@ export default function ArticleListClient({ initialItems }: ArticleListClientPro
   };
 
   const filteredItems = items.filter(item => {
-    const term = searchTerm.toLowerCase();
-    const matchesMain = 
-      item.omatapalo_code.toLowerCase().includes(term) ||
-      item.description.toLowerCase().includes(term) ||
-      item.family_name?.toLowerCase().includes(term) ||
-      item.sub_family_name?.toLowerCase().includes(term);
+    const codeMatch = item.omatapalo_code.toLowerCase().includes(searchCode.toLowerCase());
     
-    const matchesPN = item.item_part_numbers?.some((pn: any) => 
-      pn.part_number.toLowerCase().includes(term) ||
-      pn.brand_name?.toLowerCase().includes(term)
-    );
+    const hierarchyMatch = 
+      item.family_name?.toLowerCase().includes(searchHierarchy.toLowerCase()) ||
+      item.sub_family_name?.toLowerCase().includes(searchHierarchy.toLowerCase());
+      
+    const descMatch = 
+      item.description.toLowerCase().includes(searchDesc.toLowerCase()) ||
+      item.item_part_numbers?.some((pn: any) => 
+        pn.part_number.toLowerCase().includes(searchDesc.toLowerCase()) ||
+        pn.brand_name?.toLowerCase().includes(searchDesc.toLowerCase())
+      );
 
-    return matchesMain || matchesPN;
-  });
+    return codeMatch && hierarchyMatch && descMatch;
+  }).sort((a, b) => a.omatapalo_code.localeCompare(b.omatapalo_code, undefined, { numeric: true, sensitivity: 'base' }));
 
   return (
     <div className="flex h-[calc(100vh-4rem)] -m-8 overflow-hidden bg-white dark:bg-zinc-950 font-sans">
@@ -66,31 +81,55 @@ export default function ArticleListClient({ initialItems }: ArticleListClientPro
         </header>
 
         <div className="flex items-center gap-3 mb-6">
+          <div className="relative w-48">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-300" />
+            <input 
+              type="text" 
+              placeholder="CÓDIGO..."
+              className="w-full pl-11 pr-4 py-3 rounded-xl border-2 border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 outline-none focus:border-zinc-900 dark:focus:border-zinc-100 transition-all text-[11px] font-bold uppercase shadow-lg shadow-zinc-200/50 dark:shadow-zinc-950/20"
+              value={searchCode}
+              onChange={(e) => setSearchCode(e.target.value)}
+            />
+          </div>
+          <div className="relative w-64">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-300" />
+            <input 
+              type="text" 
+              placeholder="HIERARQUIA / FAMÍLIA..."
+              className="w-full pl-11 pr-4 py-3 rounded-xl border-2 border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 outline-none focus:border-zinc-900 dark:focus:border-zinc-100 transition-all text-[11px] font-bold uppercase shadow-lg shadow-zinc-200/50 dark:shadow-zinc-950/20"
+              value={searchHierarchy}
+              onChange={(e) => setSearchHierarchy(e.target.value)}
+            />
+          </div>
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-300" />
             <input 
               type="text" 
-              placeholder="PESQUISAR CÓDIGO, DESCRIÇÃO OU PART-NUMBER..."
-              className="w-full pl-11 pr-4 py-3 rounded-xl border-2 border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 outline-none focus:border-zinc-900 dark:focus:border-zinc-100 transition-all text-[11px] font-bold uppercase"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="DESCRIÇÃO / PART-NUMBER..."
+              className="w-full pl-11 pr-4 py-3 rounded-xl border-2 border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 outline-none focus:border-zinc-900 dark:focus:border-zinc-100 transition-all text-[11px] font-bold uppercase shadow-lg shadow-zinc-200/50 dark:shadow-zinc-950/20"
+              value={searchDesc}
+              onChange={(e) => setSearchDesc(e.target.value)}
             />
           </div>
-          <button className="p-3 border-2 border-zinc-100 dark:border-zinc-800 rounded-xl hover:bg-zinc-50 transition-all">
-            <Filter className="h-4 w-4 text-zinc-500" />
+          <button 
+            onClick={() => { setSearchCode(""); setSearchHierarchy(""); setSearchDesc(""); }}
+            className="p-3 bg-red-600 rounded-xl hover:bg-red-700 transition-all shadow-lg shadow-red-500/20"
+            title="LIMPAR FILTROS"
+          >
+            <X className="h-4 w-4 text-white stroke-[4]" />
           </button>
           
           <div className="flex items-center gap-2">
             <button 
               onClick={() => setIsBulkModalOpen(true)}
-              className="flex items-center gap-2 px-5 py-3 border-2 border-zinc-900 dark:border-zinc-100 rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all"
+              className="flex items-center gap-2 px-5 py-3 border-2 border-zinc-900 dark:border-zinc-100 rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all shadow-lg shadow-zinc-200/50 dark:shadow-zinc-950/20"
             >
               <Upload className="h-3.5 w-3.5" />
               Importar
             </button>
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl font-black uppercase text-[10px] tracking-[0.15em] hover:bg-blue-700 transition-all"
+              className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-xl font-black uppercase text-[10px] tracking-[0.15em] hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20"
             >
               <Plus className="h-3.5 w-3.5" />
               Novo Artigo
@@ -98,10 +137,10 @@ export default function ArticleListClient({ initialItems }: ArticleListClientPro
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto rounded-3xl border-2 border-zinc-100 dark:border-zinc-800">
+        <div className="flex-1 overflow-auto rounded-3xl border-2 border-zinc-100 dark:border-zinc-800 shadow-2xl shadow-zinc-200/50 dark:shadow-zinc-950/40 bg-white dark:bg-zinc-900">
           <table className="w-full text-left border-collapse table-fixed">
-            <thead className="sticky top-0 bg-white dark:bg-zinc-900 border-b-2 border-zinc-100 dark:border-zinc-800 z-10">
-              <tr className="text-[9px] uppercase font-black text-zinc-400 tracking-[0.2em]">
+            <thead className="sticky top-0 bg-zinc-50 dark:bg-zinc-900 z-10 shadow-[0_2px_0_0_rgba(228,228,231,1)] dark:shadow-[0_2px_0_0_rgba(39,39,42,1)]">
+              <tr className="text-[9px] uppercase font-black text-zinc-600 dark:text-zinc-400 tracking-[0.2em]">
                 <th className="px-8 py-4 w-[160px]">Codificação</th>
                 <th className="px-8 py-4 w-[200px]">Hierarquia</th>
                 <th className="px-8 py-4">Descrição & Referências do Fabricante</th>
@@ -148,8 +187,8 @@ export default function ArticleListClient({ initialItems }: ArticleListClientPro
         </div>
       )}
 
-      {isModalOpen && <ArticleFormModal initialData={editingItem} onClose={(s) => { setIsModalOpen(false); setEditingItem(null); if (s) window.location.reload(); }} />}
-      {isBulkModalOpen && <BulkImportModal onClose={(s) => { setIsBulkModalOpen(false); if (s) window.location.reload(); }} />}
+      {isModalOpen && <ArticleFormModal initialData={editingItem} onClose={(s) => { setIsModalOpen(false); setEditingItem(null); if (s) router.refresh(); }} />}
+      {isBulkModalOpen && <BulkImportModal onClose={(s) => { setIsBulkModalOpen(false); if (s) router.refresh(); }} />}
     </div>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { X, Upload, FileDown, CheckCircle, AlertTriangle, Loader2 } from "lucide-react";
+import { X, Upload, FileDown, CheckCircle, AlertTriangle, Loader2, FileType } from "lucide-react";
+import * as XLSX from "xlsx";
 import { upsertArticle } from "@/app/artigos/actions";
 import { createClient } from "@/utils/supabase/client";
 
@@ -16,14 +17,14 @@ export default function BulkImportModal({ onClose }: BulkImportProps) {
   const supabase = createClient();
 
   const handleDownloadTemplate = () => {
-    const headers = "omatapalo_code,description,family_name,sub_family_name,unit\n";
-    const example = "MP-001,FILTRO OLEO VOLVO,FILTROS,FILTRO OLEO,UN\n";
-    const blob = new Blob([headers + example], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = "template_artigos.csv";
-    a.click();
+    const data = [
+      ["omatapalo_code", "description", "family_name", "sub_family_name", "unit"],
+      ["MP-001", "FILTRO OLEO VOLVO", "FILTROS", "FILTRO OLEO", "UN"]
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Artigos");
+    XLSX.writeFile(wb, "Importar Artigos.xlsx");
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,20 +32,25 @@ export default function BulkImportModal({ onClose }: BulkImportProps) {
     if (!file) return;
 
     setIsImporting(true);
-    const content = await file.text();
-    const rows = content.split('\n').filter(row => row.trim());
-    const dataRows = rows.slice(1); // Remove header
+    const buffer = await file.arrayBuffer();
+    const workbook = XLSX.read(buffer);
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
     
-    setProgress({ current: 0, total: dataRows.length });
+    setProgress({ current: 0, total: jsonData.length });
     
     let created = 0;
     let ignored = 0;
     const logs: string[] = [];
 
-    for (let i = 0; i < dataRows.length; i++) {
-      const row = dataRows[i];
-      // Use a more robust split for CSV if necessary (simple comma split for now)
-      const [code, desc, fam, sub, unit] = row.split(',').map(s => s?.trim());
+    for (let i = 0; i < jsonData.length; i++) {
+      const row = jsonData[i];
+      const code = row.omatapalo_code?.toString().trim();
+      const desc = row.description?.toString().trim();
+      const fam = row.family_name?.toString().trim();
+      const sub = row.sub_family_name?.toString().trim();
+      const unit = row.unit?.toString().trim();
       
       if (!code || !desc) {
           ignored++;
@@ -70,7 +76,7 @@ export default function BulkImportModal({ onClose }: BulkImportProps) {
         await upsertArticle({
           omatapalo_code: code.toUpperCase(),
           description: desc.toUpperCase(),
-          family: fam?.toUpperCase(), // Trigger will handle mapping if we add logic or keep it text
+          family: fam?.toUpperCase(), 
           sub_family: sub?.toUpperCase(),
           unit: unit?.toUpperCase() || "UN"
         }, []);
@@ -100,17 +106,17 @@ export default function BulkImportModal({ onClose }: BulkImportProps) {
         <div className="p-8 space-y-6">
           {!results ? (
             <>
-              <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed dark:border-zinc-800 rounded-2xl bg-zinc-50 dark:bg-zinc-950/20 text-center gap-4">
+                <div className="flex flex-col items-center justify-center p-12 border-2 border-dashed dark:border-zinc-800 rounded-2xl bg-zinc-50 dark:bg-zinc-950/20 text-center gap-4">
                 <div className="p-4 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
-                  <Upload className="h-8 w-8" />
+                  <FileType className="h-8 w-8" />
                 </div>
                 <div>
-                   <p className="font-bold">Selecione o ficheiro CSV</p>
-                   <p className="text-xs text-zinc-500 font-medium">Os artigos existentes serão ignorados automaticamente.</p>
+                   <p className="font-bold">Selecione o ficheiro Excel</p>
+                   <p className="text-xs text-zinc-500 font-medium">Suporta .xlsx e .xls. Artigos existentes serão ignorados.</p>
                 </div>
                 <input 
                   type="file" 
-                  accept=".csv"
+                  accept=".xlsx, .xls"
                   className="hidden" 
                   id="csv-upload" 
                   onChange={handleFileUpload}
@@ -136,7 +142,7 @@ export default function BulkImportModal({ onClose }: BulkImportProps) {
                   onClick={handleDownloadTemplate}
                   className="text-blue-600 hover:underline font-bold"
                 >
-                  Download .CSV
+                  Download .XLSX
                 </button>
               </div>
 

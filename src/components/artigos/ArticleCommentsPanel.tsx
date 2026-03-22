@@ -72,15 +72,22 @@ export default function ArticleCommentsPanel({ itemCode }: CommentsPanelProps) {
 
   if (!itemCode) {
     return (
-      <div className="h-full flex flex-col items-center justify-center p-8 bg-zinc-50 dark:bg-zinc-950">
-        <MessageSquare className="h-10 w-10 text-zinc-200 mb-2" />
-        <p className="text-[9px] font-black uppercase text-zinc-300 tracking-widest text-center">Selecionar Artigo</p>
+      <div className="h-full flex flex-col items-center justify-center p-12 bg-zinc-50 dark:bg-zinc-950 text-center space-y-4">
+        <div className="p-4 bg-white dark:bg-zinc-900 rounded-2xl shadow-xl shadow-zinc-200/50 dark:shadow-zinc-950/20">
+          <MessageSquare className="h-10 w-10 text-blue-600 dark:text-blue-500 animate-pulse" />
+        </div>
+        <div className="space-y-1">
+          <p className="text-[11px] font-black uppercase text-zinc-900 dark:text-zinc-100 tracking-widest">Aguardando Seleção</p>
+          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest max-w-[170px] leading-relaxed">
+            Selecione um código de artigo para ver os comentários e anexos.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-zinc-950 animate-in fade-in duration-300 border-l border-zinc-100 dark:border-zinc-800">
+    <div className="h-full flex flex-col bg-white dark:bg-zinc-950 animate-in fade-in duration-300 border-l border-zinc-100 dark:border-zinc-800 shadow-[-20px_0_30px_-15px_rgba(0,0,0,0.05)] dark:shadow-[-20px_0_30px_-15px_rgba(0,0,0,0.2)]">
       <div className="p-6 border-b border-zinc-100 dark:border-zinc-800">
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-[9px] font-black uppercase text-zinc-400 tracking-[0.1em]">
