@@ -173,7 +173,10 @@ export default function ArticleListClient({ initialItems }: ArticleListClientPro
 
       {/* Sidebar: Integrated Comments */}
       <div className="w-[380px] border-l border-zinc-100 dark:border-zinc-800 h-full bg-zinc-50/30 dark:bg-zinc-950/20">
-        <ArticleCommentsPanel itemCode={selectedItem?.omatapalo_code || null} />
+          <ArticleCommentsPanel 
+            itemCode={selectedItem?.omatapalo_code} 
+            itemName={selectedItem?.description || ""} 
+          />
       </div>
 
       {/* Overlays */}

@@ -65,6 +65,7 @@ export default function Header() {
           </nav>
         </div>
         <div className="flex items-center gap-6">
+          <div className="h-6 w-[1px] bg-zinc-100 dark:bg-zinc-800 mx-1" />
           <ThemeToggle />
           <div className="flex items-center gap-3 pr-2">
             <div className="text-right hidden sm:block">

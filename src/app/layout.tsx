@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GAO Peças - ERP",
-  description: "Gestão de Armazéns Omatapalo",
+  title: "GAO Peças",
+  description: "Sistema de Gestão de Artigos de Oficina",
 };
 
 export default function RootLayout({
@@ -25,19 +25,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pt-PT" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans`}
-      >
+    <html lang="pt" suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased font-sans min-h-screen bg-zinc-50 dark:bg-zinc-950`}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="light"
+          enableSystem={false}
           disableTransitionOnChange
         >
           <div className="relative flex min-h-screen flex-col">
             <Header />
-            <main className="flex-1">{children}</main>
+            <main className="flex-1 p-8">{children}</main>
           </div>
         </ThemeProvider>
       </body>
