@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X, Save, Loader2, Plus, Trash2, PlusCircle, Image as ImageIcon, Paperclip, ListTree } from "lucide-react";
-import { upsertArticle } from "@/app/artigos/actions";
+import { useState, useEffect, useRef } from "react";
+import { X, Save, Loader2, Plus, Trash2, PlusCircle, Image as ImageIcon, Paperclip, ListTree, ExternalLink, ChevronLeft, ChevronRight, FileText } from "lucide-react";
+import { upsertArticle, saveAttachment, getAttachments, deleteAttachment } from "@/app/artigos/actions";
+import { useSupabaseStorage } from "@/hooks/useSupabaseStorage";
 import { getBrands } from "@/app/artigos/brands-actions";
 import { getFamilies, getSubFamilies } from "@/app/artigos/hierarchy-actions";
 import BrandFormModal from "./BrandFormModal";
@@ -23,6 +24,12 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
   const [families, setFamilies] = useState<any[]>([]);
   const [subFamilies, setSubFamilies] = useState<any[]>([]);
   const [loadingMaster, setLoadingMaster] = useState(true);
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [loadingAttachments, setLoadingAttachments] = useState(false);
+  const photoScrollRef = useRef<HTMLDivElement>(null);
+  const [uploading, setUploading] = useState<"Fotos" | "Documentos" | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { uploadFile, getPublicUrl } = useSupabaseStorage();
 
   const isAdmin = true;
 
@@ -41,7 +48,22 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
 
   useEffect(() => {
     loadMasterData();
+    if (initialData?.omatapalo_code) {
+      loadAttachments(initialData.omatapalo_code);
+    }
   }, []);
+
+  const loadAttachments = async (code: string) => {
+    setLoadingAttachments(true);
+    try {
+      const data = await getAttachments(code);
+      setAttachments(data);
+    } catch (error) {
+      console.error("Error loading attachments:", error);
+    } finally {
+      setLoadingAttachments(false);
+    }
+  };
 
   useEffect(() => {
     if (formData.family_id) {
@@ -87,6 +109,67 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
     setPartNumbers(newList);
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: "Fotos" | "Documentos") => {
+    const file = e.target.files?.[0];
+    if (!file || !formData.omatapalo_code) return;
+
+    setUploading(type);
+    try {
+      const cleanCode = formData.omatapalo_code.replace(/"/g, '');
+      const timestamp = new Date().getTime();
+      
+      const sanitizedName = file.name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "") 
+        .replace(/[^a-zA-Z0-9.-]/g, "_"); 
+        
+      const filePath = `${cleanCode}/${type}/${timestamp}_${sanitizedName}`;
+      
+      try {
+        await uploadFile("artigos", filePath, file);
+      } catch (storageErr: any) {
+        throw new Error(`STORAGE: ${storageErr.message || JSON.stringify(storageErr)}`);
+      }
+
+      const publicUrl = getPublicUrl("artigos", filePath);
+      
+      try {
+        await saveAttachment(
+          cleanCode, 
+          type === "Fotos" ? "image" : "document", 
+          publicUrl, 
+          sanitizedName
+        );
+        await loadAttachments(cleanCode);
+      } catch (dbErr: any) {
+        throw new Error(`DATABASE: ${dbErr.message || "Erro ao salvar registro na DB"}`);
+      }
+      
+      alert("Ficheiro carregado com sucesso!");
+    } catch (error: any) {
+      console.error("Upload process failed:", error);
+      alert(`FALHA NO PROCESSO:\n\n${error.message || JSON.stringify(error)}`);
+    } finally {
+      setUploading(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleDeleteAttachment = async (id: string, filePath: string) => {
+    if (!confirm("Tem a certeza que deseja eliminar este anexo?")) return;
+    try {
+      let relativePath = filePath;
+      if (filePath.includes('/public/artigos/')) {
+        relativePath = filePath.split('/public/artigos/')[1];
+      }
+
+      await deleteAttachment(id, relativePath);
+      if (formData.omatapalo_code) loadAttachments(formData.omatapalo_code);
+    } catch (error) {
+      alert("Erro ao eliminar anexo.");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.omatapalo_code || !formData.description) return;
@@ -108,7 +191,7 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
       <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] w-full max-w-7xl h-[85vh] flex flex-col overflow-hidden border-2 border-zinc-100 dark:border-zinc-800">
         
         {/* Header */}
-        <div className="p-8 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50">
+        <div className="px-8 py-3 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50">
           <div>
             <h3 className="text-2xl font-black italic tracking-tighter uppercase text-zinc-900 dark:text-zinc-100">
                {initialData ? (
@@ -127,9 +210,9 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
         <form onSubmit={handleSubmit} className="flex-1 flex overflow-hidden">
           
           {/* Left Panel: Primary Data */}
-          <div className="w-[380px] border-r border-zinc-100 dark:border-zinc-800 px-6 py-8 space-y-6 overflow-hidden">
-            <div className="flex items-center justify-between h-10 mb-8 px-1">
-               <div className="text-[10px] font-black uppercase text-blue-600 tracking-[0.2em]">
+          <div className="w-[380px] border-r border-zinc-100 dark:border-zinc-800 px-6 py-3 space-y-6 overflow-hidden">
+            <div className="flex items-center justify-between h-10 mb-3 px-1">
+               <div className="text-[12px] font-black uppercase text-blue-600 tracking-[0.2em]">
                   1. ATRIBUTOS BASE
                </div>
                <button type="button" onClick={() => setIsHierarchyModalOpen(true)} className="p-2 border border-zinc-100 dark:border-zinc-800 rounded-lg text-zinc-400 hover:text-blue-600 transition-colors">
@@ -203,9 +286,9 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
 
           {/* Right Panel */}
           <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-zinc-950">
-            <div className="flex-1 p-8 pt-10 flex flex-col min-h-0 overflow-hidden">
-               <div className="flex items-center justify-between h-10 mb-8">
-                  <div className="flex items-center gap-2 text-[10px] font-black uppercase text-amber-600 tracking-[0.2em]">
+            <div className="flex-1 p-8 pt-3 flex flex-col min-h-0 overflow-hidden">
+               <div className="flex items-center justify-between h-10 mb-3">
+                  <div className="flex items-center gap-2 text-[12px] font-black uppercase text-amber-600 tracking-[0.2em]">
                      2. REFERÊNCIAS FABRICANTE
                   </div>
                   <div className="flex gap-3">
@@ -252,26 +335,130 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
                </div>
             </div>
 
-            <div className="px-8 pb-8 pt-2 bg-white flex gap-4">
-               <div className="flex-1 p-5 rounded-2xl border-2 border-dashed border-zinc-100 dark:border-zinc-800 flex items-center gap-4 group cursor-pointer hover:border-blue-400 transition-all">
-                  <div className="p-3 bg-blue-50 text-blue-500 rounded-xl"><ImageIcon className="h-5 w-5" /></div>
-                  <div>
-                     <p className="text-[10px] font-black uppercase">FOTOS DO ARTIGO</p>
-                     <p className="text-[8px] font-bold text-zinc-300 mt-0.5 whitespace-nowrap">CARREGAR IMAGENS</p>
+            <div className="px-8 py-3 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/30 dark:bg-zinc-950/40">
+               <input 
+                 type="file" 
+                 ref={fileInputRef} 
+                 className="hidden" 
+                 onChange={(e) => handleFileUpload(e, uploading === "Fotos" ? "Fotos" : "Documentos")} 
+               />
+               <div className="grid grid-cols-2 gap-8 h-40">
+                  {/* FOTOS SECTION */}
+                  <div className="flex flex-col min-w-0 h-full">
+                     <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                           <span className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">FOTOS ({attachments.filter(a => a.file_type === 'image').length})</span>
+                           {loadingAttachments && <Loader2 className="h-3 w-3 animate-spin text-zinc-300" />}
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={() => { if(!formData.omatapalo_code) { alert("Introduza o código antes."); return; } setUploading("Fotos"); fileInputRef.current?.click(); }}
+                          className="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-[9px] font-black uppercase flex items-center gap-1.5 hover:bg-blue-100 transition-colors"
+                        >
+                           {uploading === "Fotos" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-2.5 w-2.5" />}
+                           FOTO
+                        </button>
+                     </div>
+
+                     <div className="relative group flex-1 bg-zinc-100/50 dark:bg-zinc-900/50 rounded-xl overflow-hidden">
+                        <div 
+                          ref={photoScrollRef}
+                          className="flex h-full items-center gap-2 px-3 overflow-x-auto no-scrollbar scroll-smooth"
+                        >
+                           {attachments.filter(a => a.file_type === 'image').map((att) => (
+                              <div key={att.id} className="flex-shrink-0 relative w-24 h-24 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm group/item">
+                                 <img src={att.file_path} alt={att.file_name} className="w-full h-full object-cover" />
+                                 <div className="absolute top-1 right-1">
+                                    <button 
+                                      type="button"
+                                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteAttachment(att.id, att.file_path); }}
+                                      className="p-1.5 bg-red-600 text-white rounded-md shadow-md hover:bg-red-700 transition-colors"
+                                      title="Eliminar Foto"
+                                    >
+                                       <Trash2 className="h-3 w-3" />
+                                    </button>
+                                 </div>
+                                 <a href={att.file_path} target="_blank" rel="noopener noreferrer" className="absolute bottom-1 right-1 p-1 bg-zinc-900/40 hover:bg-zinc-900/60 rounded-md text-white opacity-0 group-hover/item:opacity-100 transition-opacity">
+                                    <ExternalLink className="h-3 w-3" />
+                                 </a>
+                              </div>
+                           ))}
+                           {attachments.filter(a => a.file_type === 'image').length === 0 && (
+                             <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-zinc-300 uppercase tracking-widest italic pt-1">Sem fotos.</div>
+                           )}
+                        </div>
+                        
+                        {/* Carousel Controls */}
+                        {attachments.filter(a => a.file_type === 'image').length > 3 && (
+                          <>
+                            <button 
+                              type="button"
+                              onClick={() => photoScrollRef.current?.scrollBy({ left: -100, behavior: 'smooth' })}
+                              className="absolute left-0 top-1/2 -translate-y-1/2 p-1 bg-white/80 dark:bg-zinc-900/80 shadow-md rounded-r-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                               <ChevronLeft className="h-3 w-3 text-zinc-600" />
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={() => photoScrollRef.current?.scrollBy({ left: 100, behavior: 'smooth' })}
+                              className="absolute right-0 top-1/2 -translate-y-1/2 p-1 bg-white/80 dark:bg-zinc-900/80 shadow-md rounded-l-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                               <ChevronRight className="h-3 w-3 text-zinc-600" />
+                            </button>
+                          </>
+                        )}
+                     </div>
                   </div>
-               </div>
-               <div className="flex-1 p-5 rounded-2xl border-2 border-dashed border-zinc-100 dark:border-zinc-800 flex items-center gap-4 group cursor-pointer hover:border-green-400 transition-all">
-                  <div className="p-3 bg-green-50 text-green-600 rounded-xl"><Paperclip className="h-5 w-5" /></div>
-                  <div>
-                     <p className="text-[10px] font-black uppercase">DOCUMENTAÇÃO</p>
-                     <p className="text-[8px] font-bold text-zinc-300 mt-0.5 whitespace-nowrap">NOTAS / PDF / FICHAS</p>
+
+                  {/* DOCUMENTOS SECTION */}
+                  <div className="flex flex-col min-w-0 h-full">
+                     <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                           <span className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">DOCUMENTOS ({attachments.filter(a => a.file_type !== 'image').length})</span>
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={() => { if(!formData.omatapalo_code) { alert("Introduza o código antes."); return; } setUploading("Documentos"); fileInputRef.current?.click(); }}
+                          className="px-3 py-1.5 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-lg text-[9px] font-black uppercase flex items-center gap-1.5 hover:bg-green-100 transition-colors"
+                        >
+                           {uploading === "Documentos" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-2.5 w-2.5" />}
+                           DOCUMENTO
+                        </button>
+                     </div>
+
+                     <div className="h-[110px] bg-zinc-100/50 dark:bg-zinc-900/50 rounded-xl overflow-y-scroll custom-scrollbar p-2 space-y-1.5">
+                        {attachments.filter(a => a.file_type !== 'image').map((att) => (
+                           <div key={att.id} className="group/doc flex items-center justify-between bg-white dark:bg-zinc-900 p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm relative overflow-hidden">
+                              <div className="flex items-center gap-2 min-w-0">
+                                 <FileText className="h-3 w-3 text-zinc-400" />
+                                 <span className="text-[9px] font-bold text-zinc-700 dark:text-zinc-300 truncate uppercase">{att.file_name}</span>
+                              </div>
+                              <div className="flex items-center gap-1 ml-2">
+                                 <a href={att.file_path} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded text-zinc-400 hover:text-blue-600">
+                                    <ExternalLink className="h-3 w-3" />
+                                 </a>
+                                 <button 
+                                   type="button"
+                                   onClick={() => handleDeleteAttachment(att.id, att.file_path)}
+                                   className="p-1 bg-red-50 text-red-400 hover:bg-red-100 rounded transition-colors"
+                                   title="Eliminar Documento"
+                                 >
+                                    <Trash2 className="h-3 w-3" />
+                                 </button>
+                              </div>
+                           </div>
+                        ))}
+                        {attachments.filter(a => a.file_type !== 'image').length === 0 && (
+                          <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-zinc-300 uppercase tracking-widest italic pt-3">Sem documentos.</div>
+                        )}
+                     </div>
                   </div>
                </div>
             </div>
           </div>
         </form>
 
-        <div className="px-10 py-6 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50">
+        <div className="px-10 py-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50">
           <span className="text-[9px] font-black text-zinc-300 uppercase tracking-widest italic">* CAMPOS OBRIGATÓRIOS</span>
           <div className="flex items-center gap-8">
             <button type="button" onClick={() => onClose()} className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-zinc-900">CANCELAR</button>
@@ -281,7 +468,7 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
               disabled={isSubmitting} 
               className="px-8 py-2.5 bg-blue-600 text-white rounded-xl font-black uppercase text-[10px] tracking-[0.1em] shadow-lg shadow-blue-600/20 hover:scale-[1.02] transition-all disabled:opacity-30"
             >
-              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "GRAVAR ARTIGO"}
+              {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "GUARDAR ALTERAÇÕES"}
             </button>
           </div>
         </div>

@@ -12,7 +12,7 @@ export function useSupabaseStorage() {
         .from(bucket)
         .upload(path, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: true
         });
 
       if (error) throw error;

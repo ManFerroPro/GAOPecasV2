@@ -69,3 +69,68 @@ export async function deleteArticle(code: string) {
   revalidatePath("/artigos");
   return { success: true };
 }
+
+export async function saveAttachment(itemCode: string, fileType: 'image' | 'document', filePath: string, fileName: string) {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  
+  const { data, error } = await supabase
+    .from('item_attachments')
+    .insert({
+      item_code: itemCode,
+      file_type: fileType,
+      file_path: filePath,
+      file_name: fileName
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error in saveAttachment:", error);
+    throw error;
+  }
+  revalidatePath("/artigos");
+  return data;
+}
+
+export async function getAttachments(itemCode: string) {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  
+  const { data, error } = await supabase
+    .from('item_attachments')
+    .select('*')
+    .eq('item_code', itemCode)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function deleteAttachment(id: string, filePath: string) {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  
+  // 1. Delete from Storage (Expects path, not URL, assuming filePath is the path)
+  // Wait, if filePath is a URL, we need to extract the path.
+  // But let's assume we store the relative path or can handle it.
+  
+  // Actually, we should probably pass the relative path.
+  
+  const { error: storageError } = await supabase.storage
+    .from('artigos')
+    .remove([filePath]);
+
+  if (storageError) console.error("Storage delete error (non-fatal):", storageError);
+
+  // 2. Delete from DB
+  const { error: dbError } = await supabase
+    .from('item_attachments')
+    .delete()
+    .eq('id', id);
+
+  if (dbError) throw dbError;
+  
+  revalidatePath("/artigos");
+  return { success: true };
+}

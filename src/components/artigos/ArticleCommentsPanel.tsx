@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Send, History, MessageSquare, Loader2, Edit2, Trash2, Check, X, Image, Paperclip } from "lucide-react";
-import { useSupabaseStorage } from "@/hooks/useSupabaseStorage";
+import { getItemComments, postItemComment, updateItemComment, deleteItemComment } from "@/app/artigos/hierarchy-actions";
 
 interface Comment {
   id: string;
@@ -24,10 +24,6 @@ export default function ArticleCommentsPanel({ itemCode, itemName }: ArticleComm
   const [isPosting, setIsPosting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
-  const [uploading, setUploading] = useState<"Fotos" | "Documentos" | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  const { uploadFile, getPublicUrl } = useSupabaseStorage();
 
   useEffect(() => {
     if (itemCode) {
@@ -39,8 +35,7 @@ export default function ArticleCommentsPanel({ itemCode, itemName }: ArticleComm
     if (!itemCode) return;
     setLoading(true);
     try {
-      const response = await fetch(`/api/comments?itemCode=${itemCode}`);
-      const data = await response.json();
+      const data = await getItemComments(itemCode);
       setComments(data || []);
     } catch (error) {
       console.error("Error fetching comments:", error);
@@ -49,50 +44,6 @@ export default function ArticleCommentsPanel({ itemCode, itemName }: ArticleComm
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: "Fotos" | "Documentos") => {
-    const file = e.target.files?.[0];
-    if (!file || !itemCode) return;
-
-    try {
-      setUploading(type);
-      
-      // Clean itemCode of any quotes
-      const cleanItemCode = itemCode.replace(/"/g, '');
-      
-      // Path format: {itemCode}/{type}/{fileName}
-      const timestamp = new Date().getTime();
-      const filePath = `${cleanItemCode}/${type}/${timestamp}_${file.name}`;
-      
-      await uploadFile("artigos", filePath, file);
-      const publicUrl = getPublicUrl("artigos", filePath);
-
-      // Add a comment with the link to the file
-      const linkText = type === "Fotos" ? "📸 FOTO ADICIONADA" : "📎 DOCUMENTO ADICIONADO";
-      const commentContent = `[SISTEMA] ${linkText}: ${file.name}\n${publicUrl}`;
-      
-      await fetch('/api/comments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemCode, content: commentContent }),
-      });
-      
-      fetchComments();
-    } catch (error: any) {
-      console.error("Upload failed:", error);
-      const errorMsg = error.message || error.error_description || "Erro desconhecido";
-      
-      if (errorMsg.includes("bucket not found")) {
-        alert("Erro: O bucket 'artigos' não foi encontrado. Por favor, crie o bucket 'artigos' no dashboard do Supabase.");
-      } else if (errorMsg.includes("row-level security")) {
-        alert("Erro de Permissão (RLS): Precisa de adicionar uma política no Supabase para permitir 'INSERT' no bucket 'artigos'.");
-      } else {
-        alert(`Falha no upload para o Supabase Storage: ${errorMsg}`);
-      }
-    } finally {
-      setUploading(null);
-      if (fileInputRef.current) fileInputRef.current.value = "";
-    }
-  };
 
   const handlePost = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,16 +51,9 @@ export default function ArticleCommentsPanel({ itemCode, itemName }: ArticleComm
 
     setIsPosting(true);
     try {
-      const response = await fetch('/api/comments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemCode, content: newComment }),
-      });
-
-      if (response.ok) {
-        setNewComment("");
-        fetchComments();
-      }
+      await postItemComment(itemCode, newComment, "Utilizador");
+      setNewComment("");
+      fetchComments();
     } catch (error) {
       console.error("Error posting comment:", error);
     } finally {
@@ -120,15 +64,9 @@ export default function ArticleCommentsPanel({ itemCode, itemName }: ArticleComm
   const handleUpdate = async (id: string) => {
     if (!editText.trim()) return;
     try {
-      const response = await fetch(`/api/comments/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: editText })
-      });
-      if (response.ok) {
-        setEditingId(null);
-        fetchComments();
-      }
+      await updateItemComment(id, editText);
+      setEditingId(null);
+      fetchComments();
     } catch (error) {
       console.error("Error updating comment:", error);
     }
@@ -137,12 +75,8 @@ export default function ArticleCommentsPanel({ itemCode, itemName }: ArticleComm
   const handleDelete = async (id: string) => {
     if (!confirm("Confirmar eliminação?")) return;
     try {
-      const response = await fetch(`/api/comments/${id}`, {
-        method: 'DELETE'
-      });
-      if (response.ok) {
-        fetchComments();
-      }
+      await deleteItemComment(id);
+      fetchComments();
     } catch (error) {
       console.error("Error deleting comment:", error);
     }
@@ -216,31 +150,7 @@ export default function ArticleCommentsPanel({ itemCode, itemName }: ArticleComm
         )}
       </div>
 
-      <div className="p-6 border-t border-zinc-100 dark:border-zinc-800 space-y-4">
-        <div className="flex gap-2">
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            className="hidden" 
-            onChange={(e) => handleFileUpload(e, uploading === "Fotos" ? "Fotos" : "Documentos")} 
-          />
-          <button 
-            onClick={() => { setUploading("Fotos"); fileInputRef.current?.click(); }}
-            disabled={!!uploading}
-            className="flex-1 flex items-center justify-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl hover:bg-blue-100 transition-all border border-blue-100 dark:border-blue-800/50 text-[10px] font-black uppercase tracking-widest"
-          >
-            {uploading === "Fotos" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Image className="h-3.5 w-3.5" />}
-            Fotos
-          </button>
-          <button 
-            onClick={() => { setUploading("Documentos"); fileInputRef.current?.click(); }}
-            disabled={!!uploading}
-            className="flex-1 flex items-center justify-center gap-2 p-3 bg-zinc-50 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 rounded-xl hover:bg-zinc-100 transition-all border border-zinc-200 dark:border-zinc-800 text-[10px] font-black uppercase tracking-widest"
-          >
-            {uploading === "Documentos" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5" />}
-            Documentos
-          </button>
-        </div>
+      <div className="p-6 border-t border-zinc-100 dark:border-zinc-800">
         <form onSubmit={handlePost} className="relative">
           <textarea 
             rows={2}

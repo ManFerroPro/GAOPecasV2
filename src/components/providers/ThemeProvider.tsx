@@ -14,7 +14,7 @@ export function ThemeProvider({
   }, []);
 
   if (!mounted) {
-    return <div style={{ visibility: "hidden" }}>{children}</div>;
+    return <>{children}</>;
   }
 
   return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
