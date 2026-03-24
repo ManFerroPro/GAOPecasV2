@@ -18,7 +18,7 @@ export default async function ArtigosPage() {
         brands (name)
       ),
       item_comments (id),
-      item_attachments (id, file_type)
+      item_attachments (id, file_type, file_path, file_name)
     `)
     .order('omatapalo_code', { ascending: true });
 
@@ -36,7 +36,7 @@ export default async function ArtigosPage() {
   })) || [];
 
   return (
-    <div className="p-8 max-w-[1900px] mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="h-full w-full animate-in fade-in duration-500">
       <ArticleListClient initialItems={mappedItems} />
     </div>
   );

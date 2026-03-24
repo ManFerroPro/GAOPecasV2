@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Filter, Plus, Edit2, Trash2, Loader2, MessageSquare, Image, Paperclip, Upload, X, MoreVertical } from "lucide-react";
+import { Search, Filter, Plus, Edit2, Trash2, Loader2, MessageSquare, Image, Paperclip, Upload, X, MoreVertical, ExternalLink, FileText } from "lucide-react";
 import React, { useState, useRef, useLayoutEffect, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ArticleFormModal from "./ArticleFormModal";
@@ -72,15 +72,15 @@ export default function ArticleListClient({ initialItems }: ArticleListClientPro
   }).sort((a, b) => a.omatapalo_code.localeCompare(b.omatapalo_code, undefined, { numeric: true, sensitivity: 'base' }));
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] -m-8 overflow-hidden bg-white dark:bg-zinc-950 font-sans">
+    <div className="flex h-[calc(100vh-5rem)] -m-8 bg-white dark:bg-zinc-950 font-sans overflow-hidden">
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col px-10 pt-6 pb-10 overflow-hidden">
-        <header className="mb-6">
-          <h1 className="text-5xl font-black tracking-tighter uppercase text-zinc-900 dark:text-zinc-100 leading-none">Artigos</h1>
+      <div className="flex-1 flex flex-col pt-3 pb-6 overflow-hidden">
+        <header className="px-6 mb-4 flex-shrink-0">
+          <h1 className="text-[2.5rem] font-black tracking-tighter uppercase text-zinc-900 dark:text-zinc-100 leading-none">Artigos</h1>
           <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.3em] mt-0.5">Gestão de Artigos</p>
         </header>
 
-        <div className="flex items-center gap-3 mb-6">
+        <div className="px-6 flex items-center gap-3 mb-4 flex-shrink-0">
           <div className="relative w-48">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-300" />
             <input 
@@ -137,15 +137,15 @@ export default function ArticleListClient({ initialItems }: ArticleListClientPro
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto rounded-3xl border-2 border-zinc-100 dark:border-zinc-800 shadow-2xl shadow-zinc-200/50 dark:shadow-zinc-950/40 bg-white dark:bg-zinc-900">
-          <table className="w-full text-left border-collapse table-fixed">
-            <thead className="sticky top-0 bg-zinc-50 dark:bg-zinc-900 z-10 shadow-[0_2px_0_0_rgba(228,228,231,1)] dark:shadow-[0_2px_0_0_rgba(39,39,42,1)]">
+        <div className="px-6 flex-1 flex flex-col min-h-0 overflow-hidden space-y-4">
+          <div className="flex-1 overflow-auto rounded-3xl border-2 border-zinc-100 dark:border-zinc-800 shadow-2xl shadow-zinc-200/50 dark:shadow-zinc-950/40 bg-white dark:bg-zinc-900">
+            <table className="w-full text-left border-collapse table-fixed">
+              <thead className="sticky top-0 bg-zinc-50 dark:bg-zinc-900 z-10 shadow-[0_2px_0_0_rgba(228,228,231,1)] dark:shadow-[0_2px_0_0_rgba(39,39,42,1)]">
               <tr className="text-[9px] uppercase font-black text-zinc-600 dark:text-zinc-400 tracking-[0.2em]">
                 <th className="px-8 py-4 w-[160px]">Codificação</th>
                 <th className="px-8 py-4 w-[200px]">Hierarquia</th>
                 <th className="px-8 py-4">Descrição & Referências do Fabricante</th>
                 <th className="px-8 py-4 w-[80px] text-right">UN</th>
-                <th className="px-8 py-4 w-[80px] text-right">Ação</th>
               </tr>
             </thead>
             <tbody className="divide-y-2 border-zinc-100 dark:border-zinc-800 overflow-visible">
@@ -168,6 +168,7 @@ export default function ArticleListClient({ initialItems }: ArticleListClientPro
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
 
@@ -180,12 +181,49 @@ export default function ArticleListClient({ initialItems }: ArticleListClientPro
       </div>
 
       {/* Overlays */}
-      {overlayType && (
+      {overlayType && selectedItem && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-zinc-950/80 backdrop-blur-sm animate-in fade-in duration-300">
-          <button onClick={() => setOverlayType(null)} className="absolute top-10 right-10 text-white hover:scale-110 transition-all"><X className="h-8 w-8" /></button>
-          <div className="text-center text-white p-16 border border-white/10 rounded-3xl bg-zinc-900 shadow-2xl">
-             <h3 className="text-2xl font-black uppercase mb-2 tracking-tighter">{overlayType === 'images' ? 'Galeria' : 'Documentação'}</h3>
-             <p className="opacity-30 text-xs italic uppercase tracking-widest font-bold">Acesso via OneDrive em breve.</p>
+          <button onClick={(e) => { e.stopPropagation(); setOverlayType(null); }} className="absolute top-10 right-10 text-white hover:scale-110 transition-all"><X className="h-8 w-8" /></button>
+          
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl" onClick={(e) => e.stopPropagation()}>
+             <div className="px-8 py-5 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+                <h3 className="text-xl font-black uppercase tracking-tighter">
+                  {overlayType === 'images' ? 'Galeria FOTOGRÁFICA' : 'DOCUMENTOS'} - <span className="text-blue-600">{selectedItem.omatapalo_code}</span>
+                </h3>
+             </div>
+             
+             <div className="p-8 overflow-y-auto">
+               {overlayType === 'images' ? (
+                 <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                   {selectedItem.item_attachments?.filter((a:any) => a.file_type === 'image').map((att:any) => (
+                     <a key={att.id} href={att.file_path} target="_blank" rel="noopener noreferrer" className="block relative aspect-square rounded-2xl overflow-hidden border border-zinc-200 shadow-sm hover:shadow-md transition-all hover:scale-[1.02] group">
+                       <img src={att.file_path} alt={att.file_name} className="w-full h-full object-cover" />
+                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
+                         <ExternalLink className="text-white opacity-0 group-hover:opacity-100 h-8 w-8 transition-all" />
+                       </div>
+                     </a>
+                   ))}
+                   {!selectedItem.item_attachments?.some((a:any) => a.file_type === 'image') && (
+                     <div className="col-span-full py-10 text-center text-zinc-400 font-bold uppercase tracking-widest text-xs">Sem fotos.</div>
+                   )}
+                 </div>
+               ) : (
+                 <div className="space-y-3">
+                   {selectedItem.item_attachments?.filter((a:any) => a.file_type === 'document').map((att:any) => (
+                     <a key={att.id} href={att.file_path} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-800 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all group">
+                       <div className="flex items-center gap-3">
+                         <FileText className="h-5 w-5 text-zinc-400 group-hover:text-blue-500 transition-colors" />
+                         <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300 group-hover:text-blue-700 dark:group-hover:text-blue-400 transition-colors uppercase">{att.file_name}</span>
+                       </div>
+                       <ExternalLink className="h-4 w-4 text-zinc-300 group-hover:text-blue-500 transition-colors" />
+                     </a>
+                   ))}
+                   {!selectedItem.item_attachments?.some((a:any) => a.file_type === 'document') && (
+                     <div className="py-10 text-center text-zinc-400 font-bold uppercase tracking-widest text-xs">Sem documentos.</div>
+                   )}
+                 </div>
+               )}
+             </div>
           </div>
         </div>
       )}
@@ -217,6 +255,7 @@ function ArticleRow({
         selectedItem?.omatapalo_code === item.omatapalo_code && "bg-zinc-50 dark:bg-zinc-900"
       )}
       onClick={() => { setSelectedItem(item); setOpenMenuCode(null); }}
+      onDoubleClick={() => { setEditingItem(item); setIsModalOpen(true); }}
     >
       <td className="px-8 py-5 align-top">
         <div className="space-y-3">
@@ -225,13 +264,13 @@ function ArticleRow({
           </span>
           <div className="flex items-center gap-2">
             {item.item_attachments?.some((a:any) => a.file_type === 'image') && (
-              <button onClick={(e) => { e.stopPropagation(); setOverlayType('images'); }} className="text-blue-500 hover:scale-110 transition-all"><Image className="h-3.5 w-3.5" /></button>
+              <button onClick={(e) => { e.stopPropagation(); setSelectedItem(item); setOverlayType('images'); }} className="text-blue-500 hover:scale-110 transition-all"><Image className="h-5 w-5" /></button>
             )}
             {item.item_attachments?.some((a:any) => a.file_type === 'document') && (
-              <button onClick={(e) => { e.stopPropagation(); setOverlayType('docs'); }} className="text-green-600 hover:scale-110 transition-all"><Paperclip className="h-3.5 w-3.5" /></button>
+              <button onClick={(e) => { e.stopPropagation(); setSelectedItem(item); setOverlayType('docs'); }} className="text-green-600 hover:scale-110 transition-all"><Paperclip className="h-5 w-5" /></button>
             )}
             {(item.item_comments_count > 0) && (
-              <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+              <MessageSquare className="h-5 w-5 text-amber-500" />
             )}
           </div>
         </div>
@@ -277,35 +316,6 @@ function ArticleRow({
       </td>
       <td className="px-8 py-5 align-top text-right">
         <span className="font-black text-[10px] text-zinc-400 uppercase">{item.unit || "UN"}</span>
-      </td>
-      <td className="px-8 py-5 text-right align-top relative" onClick={(e) => e.stopPropagation()}>
-        <button 
-          onClick={() => setOpenMenuCode(openMenuCode === item.omatapalo_code ? null : item.omatapalo_code)}
-          className="p-2 text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-        >
-          <MoreVertical className="h-5 w-5" />
-        </button>
-        
-        {openMenuCode === item.omatapalo_code && (
-          <div className="absolute right-8 top-12 w-40 bg-white dark:bg-zinc-900 border-2 border-zinc-100 dark:border-zinc-800 rounded-2xl shadow-xl z-[50] overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-             <button 
-               onClick={() => { setEditingItem(item); setIsModalOpen(true); setOpenMenuCode(null); }}
-               className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-             >
-               <Edit2 className="h-3.5 w-3.5" />
-               Editar
-             </button>
-             {isAdmin && (
-               <button 
-                 onClick={() => handleDelete(item.omatapalo_code)}
-                 className="w-full flex items-center gap-3 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors border-t border-zinc-50 dark:border-zinc-800"
-               >
-                 <Trash2 className="h-3.5 w-3.5" />
-                 Eliminar
-               </button>
-             )}
-          </div>
-        )}
       </td>
     </tr>
   );

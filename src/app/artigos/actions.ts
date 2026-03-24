@@ -93,7 +93,10 @@ export async function saveAttachment(itemCode: string, fileType: 'image' | 'docu
   return data;
 }
 
+import { unstable_noStore as noStore } from "next/cache";
+
 export async function getAttachments(itemCode: string) {
+  noStore();
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   
@@ -124,12 +127,17 @@ export async function deleteAttachment(id: string, filePath: string) {
   if (storageError) console.error("Storage delete error (non-fatal):", storageError);
 
   // 2. Delete from DB
-  const { error: dbError } = await supabase
+  const { data, error: dbError } = await supabase
     .from('item_attachments')
     .delete()
-    .eq('id', id);
+    .eq('id', id)
+    .select();
 
   if (dbError) throw dbError;
+  
+  if (!data || data.length === 0) {
+    throw new Error(`O anexo com ID ${id} não pôde ser eliminado da base de dados (RLS ativo ou ID inexistente).`);
+  }
   
   revalidatePath("/artigos");
   return { success: true };
