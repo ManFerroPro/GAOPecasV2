@@ -53,12 +53,12 @@ export default function EquipmentListClient({ initialItems, initialBrands, initi
         {/* Search Row */}
         <div className="px-6 flex items-end gap-2 mb-4 flex-shrink-0">
           {[
-            { label: "Nº Máquina", value: searchId, set: setSearchId, placeholder: "EQ-001" },
+            { label: "Equipamento", value: searchId, set: setSearchId, placeholder: "EQ..." },
             { label: "Matrícula", value: searchPlate, set: setSearchPlate, placeholder: "00-AA-00" },
-            { label: "Marca", value: searchBrand, set: setSearchBrand, placeholder: "CATERPILLAR" },
-            { label: "Modelo", value: searchModel, set: setSearchModel, placeholder: "320D" },
-            { label: "VIN", value: searchVin, set: setSearchVin, placeholder: "WBA..." },
-            { label: "Ano", value: searchYear, set: setSearchYear, placeholder: "2022" },
+            { label: "Marca", value: searchBrand, set: setSearchBrand, placeholder: "Marca" },
+            { label: "Modelo", value: searchModel, set: setSearchModel, placeholder: "Modelo" },
+            { label: "VIN", value: searchVin, set: setSearchVin, placeholder: "VIN..." },
+            { label: "Ano", value: searchYear, set: setSearchYear, placeholder: "Ano" },
           ].map(({ label, value, set, placeholder }) => (
             <div key={label} className="flex-1 space-y-1">
               <span className="text-[8px] font-black uppercase text-zinc-400 tracking-widest pl-1">{label}</span>
@@ -90,7 +90,7 @@ export default function EquipmentListClient({ initialItems, initialBrands, initi
             <table className="w-full text-left border-collapse table-fixed">
               <thead className="sticky top-0 bg-zinc-50 dark:bg-zinc-900 z-10 shadow-[0_2px_0_0_rgba(228,228,231,1)] dark:shadow-[0_2px_0_0_rgba(39,39,42,1)]">
                 <tr className="text-[9px] uppercase font-black text-zinc-600 dark:text-zinc-400 tracking-[0.2em]">
-                  <th className="px-8 py-4 w-[170px]">Nº Máquina</th>
+                  <th className="px-8 py-4 w-[170px]">Equipamento</th>
                   <th className="px-8 py-4 w-[160px]">Marca / Modelo</th>
                   <th className="px-8 py-4 w-[240px]">Tipo / Categoria</th>
                   <th className="px-8 py-4">Detalhes</th>
