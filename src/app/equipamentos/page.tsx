@@ -12,7 +12,7 @@ export default async function EquipamentosPage() {
     .order('mobile_id', { ascending: true });
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+    <div className="h-full w-full animate-in fade-in duration-500">
       <EquipmentListClient initialItems={equipment || []} />
     </div>
   );
