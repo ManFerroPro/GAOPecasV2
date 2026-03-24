@@ -20,7 +20,7 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBrandModalOpen, setIsBrandModalOpen] = useState(false);
   const [isHierarchyModalOpen, setIsHierarchyModalOpen] = useState(false);
-  
+
   const [brands, setBrands] = useState<any[]>([]);
   const [families, setFamilies] = useState<any[]>([]);
   const [subFamilies, setSubFamilies] = useState<any[]>([]);
@@ -90,7 +90,7 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
       const data = await getSubFamilies(fId);
       setSubFamilies(data);
     } catch (error) {
-       console.error(error);
+      console.error(error);
     }
   };
 
@@ -118,14 +118,14 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
     try {
       const cleanCode = formData.omatapalo_code.replace(/"/g, '');
       const timestamp = new Date().getTime();
-      
+
       const sanitizedName = file.name
         .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "") 
-        .replace(/[^a-zA-Z0-9.-]/g, "_"); 
-        
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9.-]/g, "_");
+
       const filePath = `${cleanCode}/${type}/${timestamp}_${sanitizedName}`;
-      
+
       try {
         await uploadFile("artigos", filePath, file);
       } catch (storageErr: any) {
@@ -133,19 +133,19 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
       }
 
       const publicUrl = getPublicUrl("artigos", filePath);
-      
+
       try {
         await saveAttachment(
-          cleanCode, 
-          type === "Fotos" ? "image" : "document", 
-          publicUrl, 
+          cleanCode,
+          type === "Fotos" ? "image" : "document",
+          publicUrl,
           sanitizedName
         );
         await loadAttachments(cleanCode);
       } catch (dbErr: any) {
         throw new Error(`DATABASE: ${dbErr.message || "Erro ao salvar registro na DB"}`);
       }
-      
+
       alert("Ficheiro carregado com sucesso!");
     } catch (error: any) {
       console.error("Upload process failed:", error);
@@ -197,7 +197,7 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
       loadMasterData();
       if (formData.omatapalo_code) loadAttachments(formData.omatapalo_code);
     } catch (error) {
-       alert("Erro.");
+      alert("Erro.");
     } finally {
       setIsSubmitting(false);
       setIsEditing(false);
@@ -207,16 +207,16 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
   return (
     <div className="fixed inset-0 z-[150] flex flex-col items-center justify-center p-6 bg-zinc-950/80 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] w-full max-w-7xl h-[85vh] flex flex-col overflow-hidden border-2 border-zinc-100 dark:border-zinc-800">
-        
+
         {/* Header */}
         <div className="px-8 py-3 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50">
           <div className="flex items-center gap-6">
             <h3 className="text-2xl font-black italic tracking-tighter uppercase text-zinc-900 dark:text-zinc-100">
-               {initialData ? (
-                 <>ARTIGO: <span className="text-blue-600">{initialData.omatapalo_code}</span></>
-               ) : (
-                 "NOVO ARTIGO"
-               )}
+              {initialData ? (
+                <>ARTIGO: <span className="text-blue-600">{initialData.omatapalo_code}</span></>
+              ) : (
+                "NOVO ARTIGO"
+              )}
             </h3>
             {!isEditing && isAdmin && initialData && (
               <div className="flex items-center gap-2">
@@ -236,35 +236,35 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
 
         {/* Content */}
         <form onSubmit={handleSubmit} className="flex-1 flex overflow-hidden">
-          
+
           {/* Left Panel: Primary Data */}
           <div className="w-[380px] border-r border-zinc-100 dark:border-zinc-800 px-6 py-3 flex flex-col overflow-hidden">
             <div className="flex items-center justify-between h-10 mb-3 px-1 flex-shrink-0">
-               <div className="text-[12px] font-black uppercase text-blue-600 tracking-[0.2em]">
-                  1. ATRIBUTOS BASE
-               </div>
-               {isEditing && (
-                 <button type="button" onClick={() => setIsHierarchyModalOpen(true)} className="p-2 border border-zinc-100 dark:border-zinc-800 rounded-lg text-zinc-400 hover:text-blue-600 transition-colors">
-                    <ListTree className="h-4 w-4" />
-                 </button>
-               )}
+              <div className="text-[12px] font-black uppercase text-blue-600 tracking-[0.2em]">
+                1. ATRIBUTOS BASE
+              </div>
+              {isEditing && (
+                <button type="button" onClick={() => setIsHierarchyModalOpen(true)} className="p-2 border border-zinc-100 dark:border-zinc-800 rounded-lg text-zinc-400 hover:text-blue-600 transition-colors">
+                  <ListTree className="h-4 w-4" />
+                </button>
+              )}
             </div>
-            
+
             <div className="flex-1 flex flex-col min-h-0 space-y-4">
               <div className="flex gap-4">
                 <div className="flex-1 space-y-1.5">
-                  <label className="text-[9px] font-black uppercase text-zinc-400 tracking-widest pl-1">CÓDIGO OMATAPALO*</label>
-                  <input 
+                  <label className="text-[9px] font-black uppercase text-zinc-400 tracking-widest pl-1">ARTIGO*</label>
+                  <input
                     required
                     disabled={!isEditing || !!initialData}
                     className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 outline-none focus:border-blue-600 transition-all text-[12px] font-black italic tracking-tighter uppercase text-blue-600 disabled:opacity-50"
                     value={formData.omatapalo_code}
-                    onChange={(e) => setFormData({...formData, omatapalo_code: e.target.value.toUpperCase()})}
+                    onChange={(e) => setFormData({ ...formData, omatapalo_code: e.target.value.toUpperCase() })}
                   />
                 </div>
                 <div className="w-24 space-y-1.5">
                   <label className="text-[9px] font-black uppercase text-zinc-400 tracking-widest pl-1">UN</label>
-                  <select disabled={!isEditing} className="w-full px-3 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-[11px] font-black uppercase disabled:opacity-50" value={formData.unit} onChange={(e) => setFormData({...formData, unit: e.target.value})}>
+                  <select disabled={!isEditing} className="w-full px-3 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-[11px] font-black uppercase disabled:opacity-50" value={formData.unit} onChange={(e) => setFormData({ ...formData, unit: e.target.value })}>
                     <option value="UN">UN</option>
                     <option value="LT">LT</option>
                     <option value="KG">KG</option>
@@ -276,19 +276,19 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
 
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black uppercase text-zinc-400 tracking-widest pl-1">DESCRIÇÃO COMERCIAL*</label>
-                <textarea 
+                <textarea
                   required
                   disabled={!isEditing}
                   rows={2}
                   className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 outline-none focus:border-blue-600 transition-all text-[11px] font-bold uppercase resize-none leading-normal disabled:opacity-50"
                   value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value.toUpperCase()})}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value.toUpperCase() })}
                 />
               </div>
 
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black uppercase text-zinc-400 tracking-widest pl-1">FAMÍLIA</label>
-                <select disabled={!isEditing} className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-[11px] font-black uppercase outline-none focus:border-blue-600 disabled:opacity-50" value={formData.family_id} onChange={(e) => setFormData({...formData, family_id: e.target.value, sub_family_id: ""})}>
+                <select disabled={!isEditing} className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-[11px] font-black uppercase outline-none focus:border-blue-600 disabled:opacity-50" value={formData.family_id} onChange={(e) => setFormData({ ...formData, family_id: e.target.value, sub_family_id: "" })}>
                   <option value="">SELECIONAR...</option>
                   {families.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
@@ -296,7 +296,7 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
 
               <div className="space-y-1.5">
                 <label className="text-[9px] font-black uppercase text-zinc-400 tracking-widest pl-1">SUB-FAMÍLIA</label>
-                <select disabled={!isEditing || !formData.family_id} className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-[11px] font-black uppercase outline-none focus:border-blue-600 disabled:opacity-50" value={formData.sub_family_id} onChange={(e) => setFormData({...formData, sub_family_id: e.target.value})}>
+                <select disabled={!isEditing || !formData.family_id} className="w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-[11px] font-black uppercase outline-none focus:border-blue-600 disabled:opacity-50" value={formData.sub_family_id} onChange={(e) => setFormData({ ...formData, sub_family_id: e.target.value })}>
                   <option value="">SELECIONAR...</option>
                   {subFamilies.map(sf => <option key={sf.id} value={sf.id}>{sf.name}</option>)}
                 </select>
@@ -304,11 +304,11 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
 
               <div className="flex-1 flex flex-col min-h-0 pb-2">
                 <label className="text-[9px] font-black uppercase text-zinc-400 tracking-widest pl-1 mb-1.5 flex-shrink-0">OBSERVAÇÕES DO ARTIGO</label>
-                <textarea 
+                <textarea
                   disabled={!isEditing}
                   className="flex-1 w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 outline-none focus:border-blue-600 transition-all text-[11px] font-bold uppercase resize-none leading-normal disabled:opacity-50"
                   value={formData.notes}
-                  onChange={(e) => setFormData({...formData, notes: e.target.value.toUpperCase()})}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value.toUpperCase() })}
                   placeholder="ESCREVA AQUI INFORMAÇÕES ADICIONAIS..."
                 />
               </div>
@@ -318,185 +318,185 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
           {/* Right Panel */}
           <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-zinc-950">
             <div className="flex-1 p-8 pt-3 flex flex-col min-h-0 overflow-hidden">
-               <div className="flex items-center justify-between h-10 mb-3">
-                  <div className="flex items-center gap-2 text-[12px] font-black uppercase text-amber-600 tracking-[0.2em]">
-                     2. REFERÊNCIAS FABRICANTE
+              <div className="flex items-center justify-between h-10 mb-3">
+                <div className="flex items-center gap-2 text-[12px] font-black uppercase text-amber-600 tracking-[0.2em]">
+                  2. REFERÊNCIAS FABRICANTE
+                </div>
+                {isEditing && (
+                  <div className="flex gap-3">
+                    <button type="button" onClick={() => setIsBrandModalOpen(true)} className="px-5 py-2.5 border border-zinc-200 rounded-xl text-[9px] font-black uppercase hover:bg-zinc-50 transition-colors disabled:opacity-50">CRIAR MARCA</button>
+                    <button type="button" onClick={addPartNumber} className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-[9px] font-black uppercase hover:scale-105 transition-all disabled:opacity-50">ADICIONAR PN +</button>
                   </div>
-                  {isEditing && (
-                    <div className="flex gap-3">
-                       <button type="button" onClick={() => setIsBrandModalOpen(true)} className="px-5 py-2.5 border border-zinc-200 rounded-xl text-[9px] font-black uppercase hover:bg-zinc-50 transition-colors disabled:opacity-50">CRIAR MARCA</button>
-                       <button type="button" onClick={addPartNumber} className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-[9px] font-black uppercase hover:scale-105 transition-all disabled:opacity-50">ADICIONAR PN +</button>
-                    </div>
-                  )}
-               </div>
+                )}
+              </div>
 
-               <div className="flex-1 overflow-auto rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/10 custom-scrollbar">
-                  <table className="w-full text-left border-collapse">
-                    <thead className="sticky top-0 bg-zinc-50 dark:bg-zinc-900 border-b-2 border-zinc-100 dark:border-zinc-800 z-10">
-                      <tr className="text-[10px] uppercase font-black text-zinc-500 tracking-[0.1em]">
-                        <th className="px-6 py-3 font-black">FABRICANTE</th>
-                        <th className="px-6 py-3 font-black">PART-NUMBER</th>
-                        <th className="px-6 py-3 font-black">OBSERVAÇÕES</th>
-                        <th className="px-6 py-3 text-right">AÇÃO</th>
+              <div className="flex-1 overflow-auto rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/10 custom-scrollbar">
+                <table className="w-full text-left border-collapse">
+                  <thead className="sticky top-0 bg-zinc-50 dark:bg-zinc-900 border-b-2 border-zinc-100 dark:border-zinc-800 z-10">
+                    <tr className="text-[10px] uppercase font-black text-zinc-500 tracking-[0.1em]">
+                      <th className="px-6 py-3 font-black">FABRICANTE</th>
+                      <th className="px-6 py-3 font-black">PART-NUMBER</th>
+                      <th className="px-6 py-3 font-black">OBSERVAÇÕES</th>
+                      <th className="px-6 py-3 text-right">AÇÃO</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y border-zinc-50">
+                    {partNumbers.map((pn, index) => (
+                      <tr key={index} className="group hover:bg-zinc-50/50">
+                        <td className="px-6 py-2.5">
+                          <select disabled={!isEditing} required className="bg-transparent border-none outline-none text-[11px] font-black uppercase italic text-zinc-600 w-full disabled:opacity-75" value={pn.brand_id} onChange={(e) => updatePartNumber(index, 'brand_id', e.target.value)}>
+                            <option value="">...</option>
+                            {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                          </select>
+                        </td>
+                        <td className="px-6 py-2.5">
+                          <input disabled={!isEditing} required placeholder="REFERÊNCIA" className="bg-transparent border-none outline-none text-[11px] font-black uppercase text-blue-600 w-full tracking-tighter disabled:opacity-75" value={pn.part_number} onChange={(e) => updatePartNumber(index, 'part_number', e.target.value.toUpperCase())} />
+                        </td>
+                        <td className="px-6 py-2.5">
+                          <input disabled={!isEditing} placeholder="NOTA" className="bg-transparent border-none outline-none text-[10px] font-bold uppercase text-zinc-400 w-full disabled:opacity-75" value={pn.description} onChange={(e) => updatePartNumber(index, 'description', e.target.value.toUpperCase())} />
+                        </td>
+                        <td className="px-6 py-2.5 text-right">
+                          {isEditing && (
+                            <button type="button" onClick={() => removePartNumber(index)} className="p-1.5 text-zinc-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 className="h-4 w-4" /></button>
+                          )}
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y border-zinc-50">
-                      {partNumbers.map((pn, index) => (
-                        <tr key={index} className="group hover:bg-zinc-50/50">
-                          <td className="px-6 py-2.5">
-                             <select disabled={!isEditing} required className="bg-transparent border-none outline-none text-[11px] font-black uppercase italic text-zinc-600 w-full disabled:opacity-75" value={pn.brand_id} onChange={(e) => updatePartNumber(index, 'brand_id', e.target.value)}>
-                                <option value="">...</option>
-                                {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                             </select>
-                          </td>
-                          <td className="px-6 py-2.5">
-                             <input disabled={!isEditing} required placeholder="REFERÊNCIA" className="bg-transparent border-none outline-none text-[11px] font-black uppercase text-blue-600 w-full tracking-tighter disabled:opacity-75" value={pn.part_number} onChange={(e) => updatePartNumber(index, 'part_number', e.target.value.toUpperCase())} />
-                          </td>
-                          <td className="px-6 py-2.5">
-                             <input disabled={!isEditing} placeholder="NOTA" className="bg-transparent border-none outline-none text-[10px] font-bold uppercase text-zinc-400 w-full disabled:opacity-75" value={pn.description} onChange={(e) => updatePartNumber(index, 'description', e.target.value.toUpperCase())} />
-                          </td>
-                          <td className="px-6 py-2.5 text-right">
-                             {isEditing && (
-                               <button type="button" onClick={() => removePartNumber(index)} className="p-1.5 text-zinc-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"><Trash2 className="h-4 w-4" /></button>
-                             )}
-                          </td>
-                        </tr>
-                      ))}
-                      {partNumbers.length === 0 && (
-                        <tr><td colSpan={4} className="px-8 py-10 text-center text-[10px] font-bold text-zinc-300 uppercase tracking-widest italic">Sem referências.</td></tr>
-                      )}
-                    </tbody>
-                  </table>
-               </div>
+                    ))}
+                    {partNumbers.length === 0 && (
+                      <tr><td colSpan={4} className="px-8 py-10 text-center text-[10px] font-bold text-zinc-300 uppercase tracking-widest italic">Sem referências.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             <div className="px-8 py-3 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/30 dark:bg-zinc-950/40">
-               <input 
-                 type="file" 
-                 ref={fileInputRef} 
-                 className="hidden" 
-                 onChange={(e) => handleFileUpload(e, uploading === "Fotos" ? "Fotos" : "Documentos")} 
-               />
-               <div className="grid grid-cols-2 gap-8 h-40">
-                  {/* FOTOS SECTION */}
-                  <div className="flex flex-col min-w-0 h-full">
-                     <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                           <span className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">FOTOS ({attachments.filter(a => a.file_type === 'image').length})</span>
-                           {loadingAttachments && <Loader2 className="h-3 w-3 animate-spin text-zinc-300" />}
-                        </div>
-                        {isEditing && (
-                          <button 
-                            type="button"
-                            onClick={() => { if(!formData.omatapalo_code) { alert("Introduza o código antes."); return; } setUploading("Fotos"); fileInputRef.current?.click(); }}
-                            className="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-[9px] font-black uppercase flex items-center gap-1.5 hover:bg-blue-100 transition-colors"
-                          >
-                             {uploading === "Fotos" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-2.5 w-2.5" />}
-                             FOTO
-                          </button>
-                        )}
-                     </div>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={(e) => handleFileUpload(e, uploading === "Fotos" ? "Fotos" : "Documentos")}
+              />
+              <div className="grid grid-cols-2 gap-8 h-40">
+                {/* FOTOS SECTION */}
+                <div className="flex flex-col min-w-0 h-full">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">FOTOS ({attachments.filter(a => a.file_type === 'image').length})</span>
+                      {loadingAttachments && <Loader2 className="h-3 w-3 animate-spin text-zinc-300" />}
+                    </div>
+                    {isEditing && (
+                      <button
+                        type="button"
+                        onClick={() => { if (!formData.omatapalo_code) { alert("Introduza o código antes."); return; } setUploading("Fotos"); fileInputRef.current?.click(); }}
+                        className="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg text-[9px] font-black uppercase flex items-center gap-1.5 hover:bg-blue-100 transition-colors"
+                      >
+                        {uploading === "Fotos" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-2.5 w-2.5" />}
+                        FOTO
+                      </button>
+                    )}
+                  </div>
 
-                     <div className="relative group flex-1 bg-zinc-100/50 dark:bg-zinc-900/50 rounded-xl overflow-hidden">
-                        <div 
-                          ref={photoScrollRef}
-                          className="flex h-full items-center gap-2 px-3 overflow-x-auto no-scrollbar scroll-smooth"
+                  <div className="relative group flex-1 bg-zinc-100/50 dark:bg-zinc-900/50 rounded-xl overflow-hidden">
+                    <div
+                      ref={photoScrollRef}
+                      className="flex h-full items-center gap-2 px-3 overflow-x-auto no-scrollbar scroll-smooth"
+                    >
+                      {attachments.filter(a => a.file_type === 'image').map((att) => (
+                        <div key={att.id} className="flex-shrink-0 relative w-24 h-24 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm group/item">
+                          <img src={att.file_path} alt={att.file_name} className="w-full h-full object-cover" />
+                          {isEditing && (
+                            <div className="absolute top-1 right-1">
+                              <button
+                                type="button"
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteAttachment(att.id, att.file_path); }}
+                                className="p-1.5 bg-red-600 text-white rounded-md shadow-md hover:bg-red-700 transition-colors"
+                                title="Eliminar Foto"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </div>
+                          )}
+                          <a href={att.file_path} target="_blank" rel="noopener noreferrer" className="absolute bottom-1 right-1 p-1 bg-zinc-900/40 hover:bg-zinc-900/60 rounded-md text-white opacity-0 group-hover/item:opacity-100 transition-opacity">
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                        </div>
+                      ))}
+                      {attachments.filter(a => a.file_type === 'image').length === 0 && (
+                        <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-zinc-300 uppercase tracking-widest italic pt-1">Sem fotos.</div>
+                      )}
+                    </div>
+
+                    {/* Carousel Controls */}
+                    {attachments.filter(a => a.file_type === 'image').length > 3 && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => photoScrollRef.current?.scrollBy({ left: -100, behavior: 'smooth' })}
+                          className="absolute left-0 top-1/2 -translate-y-1/2 p-1 bg-white/80 dark:bg-zinc-900/80 shadow-md rounded-r-lg opacity-0 group-hover:opacity-100 transition-opacity"
                         >
-                           {attachments.filter(a => a.file_type === 'image').map((att) => (
-                              <div key={att.id} className="flex-shrink-0 relative w-24 h-24 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden shadow-sm group/item">
-                                 <img src={att.file_path} alt={att.file_name} className="w-full h-full object-cover" />
-                                 {isEditing && (
-                                   <div className="absolute top-1 right-1">
-                                      <button 
-                                        type="button"
-                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteAttachment(att.id, att.file_path); }}
-                                        className="p-1.5 bg-red-600 text-white rounded-md shadow-md hover:bg-red-700 transition-colors"
-                                        title="Eliminar Foto"
-                                      >
-                                         <Trash2 className="h-3 w-3" />
-                                      </button>
-                                   </div>
-                                 )}
-                                 <a href={att.file_path} target="_blank" rel="noopener noreferrer" className="absolute bottom-1 right-1 p-1 bg-zinc-900/40 hover:bg-zinc-900/60 rounded-md text-white opacity-0 group-hover/item:opacity-100 transition-opacity">
-                                    <ExternalLink className="h-3 w-3" />
-                                 </a>
-                              </div>
-                           ))}
-                           {attachments.filter(a => a.file_type === 'image').length === 0 && (
-                             <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-zinc-300 uppercase tracking-widest italic pt-1">Sem fotos.</div>
-                           )}
-                        </div>
-                        
-                        {/* Carousel Controls */}
-                        {attachments.filter(a => a.file_type === 'image').length > 3 && (
-                          <>
-                            <button 
-                              type="button"
-                              onClick={() => photoScrollRef.current?.scrollBy({ left: -100, behavior: 'smooth' })}
-                              className="absolute left-0 top-1/2 -translate-y-1/2 p-1 bg-white/80 dark:bg-zinc-900/80 shadow-md rounded-r-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                               <ChevronLeft className="h-3 w-3 text-zinc-600" />
-                            </button>
-                            <button 
-                              type="button"
-                              onClick={() => photoScrollRef.current?.scrollBy({ left: 100, behavior: 'smooth' })}
-                              className="absolute right-0 top-1/2 -translate-y-1/2 p-1 bg-white/80 dark:bg-zinc-900/80 shadow-md rounded-l-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                               <ChevronRight className="h-3 w-3 text-zinc-600" />
-                            </button>
-                          </>
-                        )}
-                     </div>
+                          <ChevronLeft className="h-3 w-3 text-zinc-600" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => photoScrollRef.current?.scrollBy({ left: 100, behavior: 'smooth' })}
+                          className="absolute right-0 top-1/2 -translate-y-1/2 p-1 bg-white/80 dark:bg-zinc-900/80 shadow-md rounded-l-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <ChevronRight className="h-3 w-3 text-zinc-600" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* DOCUMENTOS SECTION */}
+                <div className="flex flex-col min-w-0 h-full">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">DOCUMENTOS ({attachments.filter(a => a.file_type !== 'image').length})</span>
+                    </div>
+                    {isEditing && (
+                      <button
+                        type="button"
+                        onClick={() => { if (!formData.omatapalo_code) { alert("Introduza o código antes."); return; } setUploading("Documentos"); fileInputRef.current?.click(); }}
+                        className="px-3 py-1.5 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-lg text-[9px] font-black uppercase flex items-center gap-1.5 hover:bg-green-100 transition-colors"
+                      >
+                        {uploading === "Documentos" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-2.5 w-2.5" />}
+                        DOCUMENTO
+                      </button>
+                    )}
                   </div>
 
-                  {/* DOCUMENTOS SECTION */}
-                  <div className="flex flex-col min-w-0 h-full">
-                     <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                           <span className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">DOCUMENTOS ({attachments.filter(a => a.file_type !== 'image').length})</span>
+                  <div className="h-[110px] bg-zinc-100/50 dark:bg-zinc-900/50 rounded-xl overflow-y-scroll custom-scrollbar p-2 space-y-1.5">
+                    {attachments.filter(a => a.file_type !== 'image').map((att) => (
+                      <div key={att.id} className="group/doc flex items-center justify-between bg-white dark:bg-zinc-900 p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm relative overflow-hidden">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileText className="h-3 w-3 text-zinc-400" />
+                          <span className="text-[9px] font-bold text-zinc-700 dark:text-zinc-300 truncate uppercase">{att.file_name}</span>
                         </div>
-                        {isEditing && (
-                          <button 
-                            type="button"
-                            onClick={() => { if(!formData.omatapalo_code) { alert("Introduza o código antes."); return; } setUploading("Documentos"); fileInputRef.current?.click(); }}
-                            className="px-3 py-1.5 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 rounded-lg text-[9px] font-black uppercase flex items-center gap-1.5 hover:bg-green-100 transition-colors"
-                          >
-                             {uploading === "Documentos" ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-2.5 w-2.5" />}
-                             DOCUMENTO
-                          </button>
-                        )}
-                     </div>
-
-                     <div className="h-[110px] bg-zinc-100/50 dark:bg-zinc-900/50 rounded-xl overflow-y-scroll custom-scrollbar p-2 space-y-1.5">
-                        {attachments.filter(a => a.file_type !== 'image').map((att) => (
-                           <div key={att.id} className="group/doc flex items-center justify-between bg-white dark:bg-zinc-900 p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm relative overflow-hidden">
-                              <div className="flex items-center gap-2 min-w-0">
-                                 <FileText className="h-3 w-3 text-zinc-400" />
-                                 <span className="text-[9px] font-bold text-zinc-700 dark:text-zinc-300 truncate uppercase">{att.file_name}</span>
-                              </div>
-                              <div className="flex items-center gap-1 ml-2">
-                                 <a href={att.file_path} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded text-zinc-400 hover:text-blue-600">
-                                    <ExternalLink className="h-3 w-3" />
-                                 </a>
-                                 {isEditing && (
-                                   <button 
-                                     type="button"
-                                     onClick={() => handleDeleteAttachment(att.id, att.file_path)}
-                                     className="p-1 bg-red-50 text-red-400 hover:bg-red-100 rounded transition-colors"
-                                     title="Eliminar Documento"
-                                   >
-                                      <Trash2 className="h-3 w-3" />
-                                   </button>
-                                 )}
-                              </div>
-                           </div>
-                        ))}
-                        {attachments.filter(a => a.file_type !== 'image').length === 0 && (
-                          <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-zinc-300 uppercase tracking-widest italic pt-3">Sem documentos.</div>
-                        )}
-                     </div>
+                        <div className="flex items-center gap-1 ml-2">
+                          <a href={att.file_path} target="_blank" rel="noopener noreferrer" className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded text-zinc-400 hover:text-blue-600">
+                            <ExternalLink className="h-3 w-3" />
+                          </a>
+                          {isEditing && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteAttachment(att.id, att.file_path)}
+                              className="p-1 bg-red-50 text-red-400 hover:bg-red-100 rounded transition-colors"
+                              title="Eliminar Documento"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {attachments.filter(a => a.file_type !== 'image').length === 0 && (
+                      <div className="w-full h-full flex items-center justify-center text-[9px] font-bold text-zinc-300 uppercase tracking-widest italic pt-3">Sem documentos.</div>
+                    )}
                   </div>
-               </div>
+                </div>
+              </div>
             </div>
           </div>
         </form>
@@ -508,10 +508,10 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
               {isEditing ? "CANCELAR" : "FECHAR"}
             </button>
             {isEditing && (
-              <button 
-                type="submit" 
-                onClick={handleSubmit} 
-                disabled={isSubmitting} 
+              <button
+                type="submit"
+                onClick={handleSubmit}
+                disabled={isSubmitting}
                 className="px-8 py-2.5 bg-blue-600 text-white rounded-xl font-black uppercase text-[10px] tracking-[0.1em] shadow-lg shadow-blue-600/20 hover:scale-[1.02] transition-all disabled:opacity-30"
               >
                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "GUARDAR ALTERAÇÕES"}
