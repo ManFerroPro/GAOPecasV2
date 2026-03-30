@@ -87,13 +87,16 @@ export default function EquipmentListClient({ initialItems, initialBrands, initi
         {/* Table */}
         <div className="px-6 flex-1 flex flex-col min-h-0 overflow-hidden">
           <div className="flex-1 overflow-auto rounded-3xl border-2 border-zinc-100 dark:border-zinc-800 shadow-2xl shadow-zinc-200/50 dark:shadow-zinc-950/40 bg-white dark:bg-zinc-900">
-            <table className="w-full text-left border-collapse table-fixed">
+            <table className="w-full text-left border-collapse">
               <thead className="sticky top-0 bg-zinc-50 dark:bg-zinc-900 z-10 shadow-[0_2px_0_0_rgba(228,228,231,1)] dark:shadow-[0_2px_0_0_rgba(39,39,42,1)]">
                 <tr className="text-[9px] uppercase font-black text-zinc-600 dark:text-zinc-400 tracking-[0.2em]">
-                  <th className="px-8 py-4 w-[170px]">Equipamento</th>
-                  <th className="px-8 py-4 w-[160px]">Marca / Modelo</th>
-                  <th className="px-8 py-4 w-[240px]">Tipo / Categoria</th>
-                  <th className="px-8 py-4">Detalhes</th>
+                  <th className="px-8 py-4 text-center">Equipamento</th>
+                  <th className="px-8 py-4">Marca / Modelo</th>
+                  <th className="px-8 py-4">Tipo / Categoria</th>
+                  <th className="px-8 py-4">Ano</th>
+                  <th className="px-8 py-4">VIN</th>
+                  <th className="px-8 py-4">Motor</th>
+                  <th className="px-8 py-4">Observações</th>
                 </tr>
               </thead>
               <tbody className="divide-y-2 border-zinc-100 dark:border-zinc-800">
@@ -106,7 +109,7 @@ export default function EquipmentListClient({ initialItems, initialBrands, initi
                 ))}
                 {filteredItems.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-8 py-20 text-center text-[10px] font-bold text-zinc-300 uppercase tracking-widest italic">
+                    <td colSpan={7} className="px-8 py-20 text-center text-[10px] font-bold text-zinc-300 uppercase tracking-widest italic">
                       Nenhum equipamento encontrado.
                     </td>
                   </tr>
@@ -144,12 +147,9 @@ function EquipmentRow({ eq, onDoubleClick }: { eq: any; onDoubleClick: () => voi
       className="hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-all group cursor-pointer"
       onDoubleClick={onDoubleClick}
     >
-      <td className="px-8 py-5 align-top">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Truck className="h-4 w-4 text-blue-600 flex-shrink-0" />
-            <span className="font-mono font-black text-blue-600 dark:text-blue-500 text-[14px] tracking-[0.15em]">{eq.mobile_id}</span>
-          </div>
+      <td className="px-8 py-5 align-top text-center">
+        <div className="flex flex-col items-center justify-center space-y-1">
+          <span className="font-mono font-black text-blue-600 dark:text-blue-500 text-[14px] tracking-[0.15em]">{eq.mobile_id}</span>
           {eq.license_plate && (
             <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{eq.license_plate}</span>
           )}
@@ -170,25 +170,29 @@ function EquipmentRow({ eq, onDoubleClick }: { eq: any; onDoubleClick: () => voi
           )}
         </div>
       </td>
+      <td className="px-8 py-5 align-top whitespace-nowrap">
+        <span className="text-[11px] font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-widest">{eq.year || "—"}</span>
+      </td>
+      <td className="px-8 py-5 align-top whitespace-nowrap">
+        <span className="font-mono text-[11px] font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-widest">{eq.vin || "—"}</span>
+      </td>
+      <td className="px-8 py-5 align-top whitespace-nowrap">
+        <span className="font-mono text-[11px] font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-widest">{eq.engine_no || "—"}</span>
+      </td>
       <td className="px-8 py-5 align-top">
-        <div className="space-y-1">
-          <div className="flex items-center gap-4 text-[10px] text-zinc-500 font-bold">
-            {eq.year && <span className="uppercase tracking-widest">Ano: <span className="text-zinc-700 dark:text-zinc-300">{eq.year}</span></span>}
-            {eq.vin && <span className="uppercase tracking-widest">VIN: <span className="font-mono text-zinc-600 dark:text-zinc-400">{eq.vin}</span></span>}
-            {eq.engine_no && <span className="uppercase tracking-widest">Motor: <span className="font-mono text-zinc-600 dark:text-zinc-400">{eq.engine_no}</span></span>}
+        {eq.observations ? (
+          <div className="text-[10px] text-zinc-500 flex items-center gap-1.5 overflow-hidden">
+            <span className="text-orange-600 font-black italic whitespace-nowrap">OBS:</span>
+            <span ref={obsRef} className="truncate flex-1 font-medium italic">{eq.observations}</span>
+            {isTruncated && (
+              <button onClick={(e) => { e.stopPropagation(); onDoubleClick(); }} className="text-[9px] font-black text-blue-600 hover:underline whitespace-nowrap ml-1">
+                ... VER MAIS
+              </button>
+            )}
           </div>
-          {eq.observations && (
-            <div className="text-[10px] text-zinc-500 flex items-center gap-1.5 overflow-hidden">
-              <span className="text-orange-600 font-black italic whitespace-nowrap">OBS:</span>
-              <span ref={obsRef} className="truncate flex-1 font-medium italic">{eq.observations}</span>
-              {isTruncated && (
-                <button onClick={(e) => { e.stopPropagation(); onDoubleClick(); }} className="text-[9px] font-black text-blue-600 hover:underline whitespace-nowrap ml-1">
-                  ... VER MAIS
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+        ) : (
+          <span className="text-zinc-300">—</span>
+        )}
       </td>
     </tr>
   );
