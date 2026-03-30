@@ -158,6 +158,12 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
 
   const handleDeleteAttachment = async (id: string, filePath: string) => {
     if (!confirm("Tem a certeza que deseja eliminar este anexo?")) return;
+    
+    // Save previous state for rollback
+    const previousAttachments = [...attachments];
+    // Immediate UI update
+    setAttachments(prev => prev.filter(a => a.id !== id));
+
     try {
       let relativePath = filePath;
       if (filePath.includes('/public/artigos/')) {
@@ -165,9 +171,10 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
       }
 
       await deleteAttachment(id, relativePath);
-      setAttachments(prev => prev.filter(a => a.id !== id));
-      if (formData.omatapalo_code) loadAttachments(formData.omatapalo_code);
+      // No need to loadAttachments if successful, as we already updated state
     } catch (error) {
+      // Rollback on error
+      setAttachments(previousAttachments);
       alert("Erro ao eliminar anexo.");
     }
   };
@@ -302,11 +309,11 @@ export default function ArticleFormModal({ initialData, onClose }: ArticleFormPr
                 </select>
               </div>
 
-              <div className="flex-1 flex flex-col min-h-0 pb-2">
+              <div className="flex-1 flex flex-col min-h-0">
                 <label className="text-[9px] font-black uppercase text-zinc-400 tracking-widest pl-1 mb-1.5 flex-shrink-0">OBSERVAÇÕES DO ARTIGO</label>
                 <textarea
                   disabled={!isEditing}
-                  className="flex-1 w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 outline-none focus:border-blue-600 transition-all text-[11px] font-bold uppercase resize-none leading-normal disabled:opacity-50"
+                  className="flex-1 w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 outline-none focus:border-blue-600 transition-all text-[11px] font-bold uppercase resize-none leading-normal disabled:opacity-50 min-h-[100px]"
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value.toUpperCase() })}
                   placeholder="ESCREVA AQUI INFORMAÇÕES ADICIONAIS..."
