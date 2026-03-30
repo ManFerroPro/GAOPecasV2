@@ -12,19 +12,23 @@ import {
   Truck, 
   ShoppingCart, 
   PackageCheck,
-  Box
+  Box,
+  Settings,
+  Users,
+  Database
 } from "lucide-react";
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Requisição", href: "/requisicao", icon: PlusSquare },
-  { name: "Validação", href: "/validacao", icon: CheckSquare },
-  { name: "Aprovação", href: "/aprovacao", icon: ShieldCheck },
-  { name: "Transferências", href: "/transferencias", icon: Truck },
-  { name: "Compras", href: "/compras", icon: ShoppingCart },
-  { name: "Receção", href: "/rececao", icon: PackageCheck },
-  { name: "Artigos", href: "/artigos", icon: Box },
-  { name: "Equipamentos", href: "/equipamentos", icon: Truck },
+  { name: "Dashboard", href: "/", icon: LayoutDashboard, roles: ["Administrador", "Utilizador"] },
+  { name: "Requisição", href: "/requisicao", icon: PlusSquare, roles: ["Administrador", "Utilizador"] },
+  { name: "Validação", href: "/validacao", icon: CheckSquare, roles: ["Administrador"] },
+  { name: "Aprovação", href: "/aprovacao", icon: ShieldCheck, roles: ["Administrador"] },
+  { name: "Transferências", href: "/transferencias", icon: Truck, roles: ["Administrador", "Utilizador"] },
+  { name: "Compras", href: "/compras", icon: ShoppingCart, roles: ["Administrador"] },
+  { name: "Receção", href: "/rececao", icon: PackageCheck, roles: ["Administrador", "Utilizador"] },
+  { name: "Artigos", href: "/artigos", icon: Box, roles: ["Administrador", "Utilizador"] },
+  { name: "Equipamentos", href: "/equipamentos", icon: Truck, roles: ["Administrador", "Utilizador"] },
+  { name: "Configurações", href: "/configuracoes", icon: Settings, roles: ["Administrador"] },
 ];
 
 export default function Header() {
@@ -43,9 +47,9 @@ export default function Header() {
             </span>
           </Link>
           <nav className="hidden xl:flex items-center gap-1">
-            {navigation.map((item) => {
+            {navigation.filter(item => item.roles.includes("Administrador")).map((item) => {
               const Icon = item.icon;
-              const isActive = pathname === item.href;
+              const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
               return (
                 <Link
                   key={item.href}
