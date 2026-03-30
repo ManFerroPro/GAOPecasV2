@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useLayoutEffect } from "react";
-import { Search, Plus, X, Loader2, Truck } from "lucide-react";
+import { Search, Plus, X, Loader2, Truck, Upload } from "lucide-react";
+import EquipmentBulkImportModal from "./EquipmentBulkImportModal";
 import { useRouter } from "next/navigation";
 import EquipmentFormModal from "./EquipmentFormModal";
 import { cn } from "@/lib/utils";
@@ -14,6 +15,7 @@ interface EquipmentListClientProps {
 
 export default function EquipmentListClient({ initialItems, initialBrands, initialTypes }: EquipmentListClientProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
   const router = useRouter();
 
@@ -75,6 +77,13 @@ export default function EquipmentListClient({ initialItems, initialBrands, initi
               <X className="h-4 w-4 text-white stroke-[4]" />
             </button>
             <button
+              onClick={() => setIsBulkModalOpen(true)}
+              className="flex items-center gap-2 px-5 py-2.5 border-2 border-zinc-900 dark:border-zinc-100 rounded-xl font-black uppercase text-[9px] tracking-widest hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all shadow-lg shadow-zinc-200/50 dark:shadow-zinc-950/20"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              Importar
+            </button>
+            <button
               onClick={() => { setEditingItem(null); setIsModalOpen(true); }}
               className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-xl font-black uppercase text-[10px] tracking-[0.15em] hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 whitespace-nowrap"
             >
@@ -90,13 +99,13 @@ export default function EquipmentListClient({ initialItems, initialBrands, initi
             <table className="w-full text-left border-collapse">
               <thead className="sticky top-0 bg-zinc-50 dark:bg-zinc-900 z-10 shadow-[0_2px_0_0_rgba(228,228,231,1)] dark:shadow-[0_2px_0_0_rgba(39,39,42,1)]">
                 <tr className="text-[9px] uppercase font-black text-zinc-600 dark:text-zinc-400 tracking-[0.2em]">
-                  <th className="px-8 py-4 text-center">Equipamento</th>
-                  <th className="px-8 py-4">Marca / Modelo</th>
-                  <th className="px-8 py-4">Tipo / Categoria</th>
-                  <th className="px-8 py-4">Ano</th>
-                  <th className="px-8 py-4">VIN</th>
-                  <th className="px-8 py-4">Motor</th>
-                  <th className="px-8 py-4">Observações</th>
+                  <th className="px-8 py-2 text-center">Equipamento</th>
+                  <th className="px-8 py-2">Marca / Modelo</th>
+                  <th className="px-8 py-2">Tipo / Categoria</th>
+                  <th className="px-8 py-2">Ano</th>
+                  <th className="px-8 py-2">VIN</th>
+                  <th className="px-8 py-2">Motor</th>
+                  <th className="px-8 py-2">Observações</th>
                 </tr>
               </thead>
               <tbody className="divide-y-2 border-zinc-100 dark:border-zinc-800">
@@ -125,7 +134,14 @@ export default function EquipmentListClient({ initialItems, initialBrands, initi
           initialData={editingItem}
           initialBrands={initialBrands}
           initialTypes={initialTypes}
-          onClose={(s) => { setIsModalOpen(false); setEditingItem(null); if (s) router.refresh(); }}
+          onClose={(s: boolean | undefined) => { setIsModalOpen(false); setEditingItem(null); if (s) router.refresh(); }}
+        />
+      )}
+      {isBulkModalOpen && (
+        <EquipmentBulkImportModal
+          initialBrands={initialBrands}
+          initialTypes={initialTypes}
+          onClose={(s: boolean | undefined) => { setIsBulkModalOpen(false); if (s) router.refresh(); }}
         />
       )}
     </div>
@@ -147,21 +163,21 @@ function EquipmentRow({ eq, onDoubleClick }: { eq: any; onDoubleClick: () => voi
       className="hover:bg-zinc-50 dark:hover:bg-zinc-900 transition-all group cursor-pointer"
       onDoubleClick={onDoubleClick}
     >
-      <td className="px-8 py-5 align-top text-center">
+      <td className="px-8 py-2 align-top text-center">
         <div className="flex flex-col items-center justify-center space-y-1">
           <span className="font-mono font-black text-blue-600 dark:text-blue-500 text-[14px] tracking-[0.15em]">{eq.mobile_id}</span>
           {eq.license_plate && (
-            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{eq.license_plate}</span>
+            <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-widest leading-none">{eq.license_plate}</span>
           )}
         </div>
       </td>
-      <td className="px-8 py-5 align-top">
+      <td className="px-8 py-2 align-top">
         <div className="space-y-0.5">
           <span className="text-zinc-400 font-black uppercase text-[8px] tracking-widest">{eq.brand_name || "—"}</span>
           <p className="text-[13px] font-black uppercase text-zinc-900 dark:text-zinc-100 leading-tight">{eq.model_name || "—"}</p>
         </div>
       </td>
-      <td className="px-8 py-5 align-top">
+      <td className="px-8 py-2 align-top">
         <div className="space-y-0.5">
           <span className="text-zinc-400 font-black uppercase text-[8px] tracking-widest">{eq.type_name || "—"}</span>
           <p className="text-[11px] font-bold uppercase text-zinc-700 dark:text-zinc-300">{eq.category_name || "—"}</p>
@@ -179,7 +195,7 @@ function EquipmentRow({ eq, onDoubleClick }: { eq: any; onDoubleClick: () => voi
       <td className="px-8 py-5 align-top whitespace-nowrap">
         <span className="font-mono text-[11px] font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-widest">{eq.engine_no || "—"}</span>
       </td>
-      <td className="px-8 py-5 align-top">
+      <td className="px-8 py-2 align-top">
         {eq.observations ? (
           <div className="text-[10px] text-zinc-500 flex items-center gap-1.5 overflow-hidden">
             <span className="text-orange-600 font-black italic whitespace-nowrap">OBS:</span>
