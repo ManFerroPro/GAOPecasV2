@@ -7,7 +7,6 @@ import { revalidatePath } from "next/cache";
 /**
  * DELEGATIONS ACTIONS
  */
-
 export async function getDelegations() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
@@ -17,7 +16,10 @@ export async function getDelegations() {
     .select('*')
     .order('name', { ascending: true });
 
-  if (error) throw error;
+  if (error) {
+    console.error("Error getDelegations:", error);
+    return [];
+  }
   return data || [];
 }
 
@@ -25,22 +27,31 @@ export async function upsertDelegation(delegation: any) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
+  const payload = {
+    name: delegation.name,
+    code: delegation.code.toUpperCase(),
+    address: delegation.address,
+    status: delegation.status,
+    is_master: delegation.isMaster || delegation.is_master || false
+  };
+
+  // If delegation has a valid UUID, use it, otherwise let DB generate
+  if (delegation.id && delegation.id.length > 20) {
+    (payload as any).id = delegation.id;
+  }
+
   const { data, error } = await supabase
     .from('delegations')
-    .upsert({
-      id: delegation.id.includes('.') ? undefined : delegation.id, // Handle temporary IDs if any
-      name: delegation.name,
-      code: delegation.code.toUpperCase(),
-      address: delegation.address,
-      status: delegation.status,
-      is_master: delegation.isMaster || delegation.is_master || false
-    })
+    .upsert(payload)
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error("Error upsertDelegation:", error);
+    throw new Error(error.message);
+  }
   revalidatePath("/configuracoes/delegacoes");
-  revalidatePath("/configuracoes/usuarios"); // Because users select delegations
+  revalidatePath("/configuracoes/usuarios");
   return data;
 }
 
@@ -60,152 +71,149 @@ export async function deleteDelegation(id: string) {
 /**
  * ROLES ACTIONS
  */
-
 export async function getAppRoles() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
   
-  const { data, error } = await supabase
+  let { data: roles, error } = await supabase
     .from('app_roles')
     .select('*')
     .order('name', { ascending: true });
 
-  if (error) throw error;
-  return data || [];
+  // Auto-seed if empty
+  if (!roles || roles.length === 0) {
+    const defaults = [
+      { name: 'Visualizador', scope: 'Standard' },
+      { name: 'Requisitante', scope: 'Standard' },
+      { name: 'Validador', scope: 'Standard' },
+      { name: 'Aprovador', scope: 'Master' },
+      { name: 'Transferidor', scope: 'Master' },
+      { name: 'Procurement', scope: 'Master' }
+    ];
+    const { data: seeded } = await supabase.from('app_roles').insert(defaults).select();
+    roles = seeded;
+  }
+
+  return roles || [];
 }
 
 /**
  * USER MANAGEMENT ACTIONS
  */
-
 export async function getUsersWithPermissions() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
-  // Fetch profiles
-  const { data: profiles, error: profileError } = await supabase
-    .from('profiles')
-    .select('*')
-    .order('full_name', { ascending: true });
+  try {
+    // 1. Fetch profiles
+    const { data: profiles, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('full_name', { ascending: true });
 
-  if (profileError) throw profileError;
+    if (profileError) throw profileError;
 
-  // Fetch permissions mapping with joins
-  const { data: permissions, error: permError } = await supabase
-    .from('user_delegation_roles')
-    .select(`
-      user_id,
-      delegation:delegations(name, is_master),
-      role:app_roles(name)
-    `);
+    // 2. Fetch all related data in separate queries to avoid join issues
+    const { data: allPerms } = await supabase.from('user_delegation_roles').select('*');
+    const { data: allDelegations } = await supabase.from('delegations').select('id, name');
+    const { data: allRoles } = await supabase.from('app_roles').select('id, name');
 
-  if (permError) throw permError;
+    // 3. Manual map to build the hierarchy
+    return (profiles || []).map(profile => {
+      const userPerms = (allPerms || []).filter(p => p.user_id === profile.id);
+      
+      const delegationMap: Record<string, string[]> = {};
+      userPerms.forEach(p => {
+        const delName = allDelegations?.find(d => d.id === p.delegation_id)?.name;
+        const roleName = allRoles?.find(r => r.id === p.role_id)?.name;
+        
+        if (delName && roleName) {
+          if (!delegationMap[delName]) delegationMap[delName] = [];
+          delegationMap[delName].push(roleName);
+        }
+      });
 
-  // Map permissions to profiles
-  return profiles.map(profile => {
-    const userPerms = permissions.filter(p => p.user_id === profile.id);
-    
-    // Group roles by delegation
-    const delegationMap: Record<string, string[]> = {};
-    userPerms.forEach(p => {
-      const delName = (p.delegation as any).name;
-      if (!delegationMap[delName]) delegationMap[delName] = [];
-      delegationMap[delName].push((p.role as any).name);
+      return {
+        id: profile.id,
+        name: profile.full_name,
+        email: profile.email || "N/A",
+        isAdmin: profile.is_admin,
+        status: profile.status,
+        lastLogin: profile.updated_at ? new Date(profile.updated_at).toLocaleString() : "Nunca",
+        permissions: Object.entries(delegationMap).map(([delegation, roles]) => ({
+          delegation,
+          roles
+        }))
+      };
     });
-
-    return {
-      id: profile.id,
-      name: profile.full_name,
-      email: profile.email || "N/A", // Email might come from auth or meta
-      isAdmin: profile.is_admin,
-      status: profile.status,
-      lastLogin: profile.updated_at ? new Date(profile.updated_at).toLocaleString() : "Nunca",
-      permissions: Object.entries(delegationMap).map(([delegation, roles]) => ({
-        delegation,
-        roles
-      }))
-    };
-  });
+  } catch (err) {
+    console.error("Critical error in getUsersWithPermissions:", err);
+    return [];
+  }
 }
 
 export async function upsertUserWithPermissions(userData: any) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
-  // 1. Update Profile Basics
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .upsert({
-      id: userData.id,
-      full_name: userData.name,
-      is_admin: userData.isAdmin,
-      status: userData.status,
-      updated_at: new Date().toISOString()
-    })
-    .select()
-    .single();
-
-  if (profileError) throw profileError;
-
-  // 2. Clear Existing Permissions
-  const { error: deletePermsError } = await supabase
-    .from('user_delegation_roles')
-    .delete()
-    .eq('user_id', userData.id);
-
-  if (deletePermsError) throw deletePermsError;
-
-  // 3. Insert New Permissions
-  // We need current delegations and roles to map names to IDs if the frontend only sends names.
-  // Ideally the frontend sends IDs, but for the prototype let's resolve them here or update frontend.
-  
-  // Optimistically assuming the frontend will send data that includes IDs or we resolve here.
-  // For now let's implement the logic to handle name-to-ID mapping for safety.
-  
-  const { data: allDelegations } = await supabase.from('delegations').select('id, name');
-  const { data: allRoles } = await supabase.from('app_roles').select('id, name');
-
-  if (userData.permissions && userData.permissions.length > 0) {
-    const insertPayload: any[] = [];
-    
-    userData.permissions.forEach((p: any) => {
-      const delId = allDelegations?.find(d => d.name === p.delegation)?.id;
-      if (!delId) return;
-
-      p.roles.forEach((roleName: string) => {
-        const roleId = allRoles?.find(r => r.name === roleName)?.id;
-        if (roleId) {
-          insertPayload.push({
-            user_id: userData.id,
-            delegation_id: delId,
-            role_id: roleId
-          });
-        }
+  try {
+    // 1. Upsert Profile
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .upsert({
+        id: userData.id,
+        full_name: userData.name,
+        is_admin: userData.isAdmin,
+        status: userData.status,
+        updated_at: new Date().toISOString()
       });
-    });
 
-    if (insertPayload.length > 0) {
-      const { error: insertError } = await supabase
-        .from('user_delegation_roles')
-        .insert(insertPayload);
-      
-      if (insertError) throw insertError;
+    if (profileError) throw profileError;
+
+    // 2. Clear Permissions
+    await supabase.from('user_delegation_roles').delete().eq('user_id', userData.id);
+
+    // 3. Fetch IDs for mapping
+    const { data: delegations } = await supabase.from('delegations').select('id, name');
+    const { data: roles } = await supabase.from('app_roles').select('id, name');
+
+    // 4. Insert New Permissions
+    if (userData.permissions?.length > 0) {
+      const inserts: any[] = [];
+      userData.permissions.forEach((p: any) => {
+        const delId = delegations?.find(d => d.name === p.delegation)?.id;
+        if (!delId) return;
+
+        p.roles.forEach((roleName: string) => {
+          const roleId = roles?.find(r => r.name === roleName)?.id;
+          if (roleId) {
+            inserts.push({
+              user_id: userData.id,
+              delegation_id: delId,
+              role_id: roleId
+            });
+          }
+        });
+      });
+
+      if (inserts.length > 0) {
+        const { error: insError } = await supabase.from('user_delegation_roles').insert(inserts);
+        if (insError) throw insError;
+      }
     }
-  }
 
-  revalidatePath("/configuracoes/usuarios");
-  return profile;
+    revalidatePath("/configuracoes/usuarios");
+    return { success: true };
+  } catch (err) {
+    console.error("Error in upsertUserWithPermissions:", err);
+    throw err;
+  }
 }
 
 export async function deleteUser(id: string) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
-
-  const { error } = await supabase
-    .from('profiles')
-    .delete()
-    .eq('id', id);
-
+  const { error } = await supabase.from('profiles').delete().eq('id', id);
   if (error) throw error;
   revalidatePath("/configuracoes/usuarios");
 }
