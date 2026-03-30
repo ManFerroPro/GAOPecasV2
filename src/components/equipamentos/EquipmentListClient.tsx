@@ -19,26 +19,38 @@ export default function EquipmentListClient({ initialItems, initialBrands, initi
   const [editingItem, setEditingItem] = useState<any>(null);
   const router = useRouter();
 
-  const [searchId, setSearchId] = useState("");
-  const [searchPlate, setSearchPlate] = useState("");
+  const [searchEqPlate, setSearchEqPlate] = useState("");
   const [searchBrand, setSearchBrand] = useState("");
   const [searchModel, setSearchModel] = useState("");
-  const [searchVin, setSearchVin] = useState("");
+  const [searchTypeCatSub, setSearchTypeCatSub] = useState("");
+  const [searchVinMotor, setSearchVinMotor] = useState("");
   const [searchYear, setSearchYear] = useState("");
 
   const clearAll = () => {
-    setSearchId(""); setSearchPlate(""); setSearchBrand("");
-    setSearchModel(""); setSearchVin(""); setSearchYear("");
+    setSearchEqPlate(""); setSearchBrand(""); setSearchModel("");
+    setSearchTypeCatSub(""); setSearchVinMotor(""); setSearchYear("");
   };
 
   const filteredItems = initialItems.filter(eq => {
-    const matchId = eq.mobile_id?.toLowerCase().includes(searchId.toLowerCase());
-    const matchPlate = eq.license_plate?.toLowerCase().includes(searchPlate.toLowerCase()) || searchPlate === "";
-    const matchBrand = eq.brand_name?.toLowerCase().includes(searchBrand.toLowerCase()) || searchBrand === "";
-    const matchModel = eq.model_name?.toLowerCase().includes(searchModel.toLowerCase()) || searchModel === "";
-    const matchVin = eq.vin?.toLowerCase().includes(searchVin.toLowerCase()) || searchVin === "";
-    const matchYear = eq.year?.toString().includes(searchYear) || searchYear === "";
-    return matchId && matchPlate && matchBrand && matchModel && matchVin && matchYear;
+    const matchEqPlate = !searchEqPlate || 
+      eq.mobile_id?.toLowerCase().includes(searchEqPlate.toLowerCase()) || 
+      eq.license_plate?.toLowerCase().includes(searchEqPlate.toLowerCase());
+    
+    const matchBrand = !searchBrand || eq.brand_name?.toLowerCase().includes(searchBrand.toLowerCase());
+    const matchModel = !searchModel || eq.model_name?.toLowerCase().includes(searchModel.toLowerCase());
+    
+    const matchTypeCatSub = !searchTypeCatSub || 
+      eq.type_name?.toLowerCase().includes(searchTypeCatSub.toLowerCase()) ||
+      eq.category_name?.toLowerCase().includes(searchTypeCatSub.toLowerCase()) ||
+      eq.subcategory_name?.toLowerCase().includes(searchTypeCatSub.toLowerCase());
+
+    const matchVinMotor = !searchVinMotor || 
+      eq.vin?.toLowerCase().includes(searchVinMotor.toLowerCase()) ||
+      eq.engine_no?.toLowerCase().includes(searchVinMotor.toLowerCase());
+
+    const matchYear = !searchYear || eq.year?.toString().includes(searchYear);
+
+    return matchEqPlate && matchBrand && matchModel && matchTypeCatSub && matchVinMotor && matchYear;
   }).sort((a, b) => a.mobile_id?.localeCompare(b.mobile_id, undefined, { numeric: true, sensitivity: "base" }));
 
   const searchInputCls = "w-full pl-9 pr-3 py-2.5 rounded-xl border-2 border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 outline-none focus:border-zinc-900 dark:focus:border-zinc-100 transition-all text-[11px] font-bold uppercase shadow-sm";
@@ -55,11 +67,11 @@ export default function EquipmentListClient({ initialItems, initialBrands, initi
         {/* Search Row */}
         <div className="px-6 flex items-end gap-2 mb-4 flex-shrink-0">
           {[
-            { label: "Equipamento", value: searchId, set: setSearchId, placeholder: "EQ..." },
-            { label: "Matrícula", value: searchPlate, set: setSearchPlate, placeholder: "00-AA-00" },
-            { label: "Marca", value: searchBrand, set: setSearchBrand, placeholder: "Marca" },
-            { label: "Modelo", value: searchModel, set: setSearchModel, placeholder: "Modelo" },
-            { label: "VIN", value: searchVin, set: setSearchVin, placeholder: "VIN..." },
+            { label: "Equipamento / Matrícula", value: searchEqPlate, set: setSearchEqPlate, placeholder: "ID ou Matrícula..." },
+            { label: "Marca", value: searchBrand, set: setSearchBrand, placeholder: "Marca..." },
+            { label: "Modelo", value: searchModel, set: setSearchModel, placeholder: "Modelo..." },
+            { label: "Tipo / Categorias", value: searchTypeCatSub, set: setSearchTypeCatSub, placeholder: "Tipo ou Cat..." },
+            { label: "VIN / Motor", value: searchVinMotor, set: setSearchVinMotor, placeholder: "VIN ou Motor..." },
             { label: "Ano", value: searchYear, set: setSearchYear, placeholder: "Ano" },
           ].map(({ label, value, set, placeholder }) => (
             <div key={label} className="flex-1 space-y-1">
@@ -99,12 +111,11 @@ export default function EquipmentListClient({ initialItems, initialBrands, initi
             <table className="w-full text-left border-collapse">
               <thead className="sticky top-0 bg-zinc-50 dark:bg-zinc-900 z-10 shadow-[0_2px_0_0_rgba(228,228,231,1)] dark:shadow-[0_2px_0_0_rgba(39,39,42,1)]">
                 <tr className="text-[9px] uppercase font-black text-zinc-600 dark:text-zinc-400 tracking-[0.2em]">
-                  <th className="px-8 py-2 text-center">Equipamento</th>
+                  <th className="px-8 py-2 text-center">Equipamento / Matrícula</th>
                   <th className="px-8 py-2">Marca / Modelo</th>
-                  <th className="px-8 py-2">Tipo / Categoria</th>
+                  <th className="px-8 py-2">Tipo / Categorias</th>
+                  <th className="px-8 py-2">VIN / Motor</th>
                   <th className="px-8 py-2">Ano</th>
-                  <th className="px-8 py-2">VIN</th>
-                  <th className="px-8 py-2">Motor</th>
                   <th className="px-8 py-2">Observações</th>
                 </tr>
               </thead>
@@ -118,7 +129,7 @@ export default function EquipmentListClient({ initialItems, initialBrands, initi
                 ))}
                 {filteredItems.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-8 py-20 text-center text-[10px] font-bold text-zinc-300 uppercase tracking-widest italic">
+                    <td colSpan={6} className="px-8 py-20 text-center text-[10px] font-bold text-zinc-300 uppercase tracking-widest italic">
                       Nenhum equipamento encontrado.
                     </td>
                   </tr>
@@ -164,36 +175,40 @@ function EquipmentRow({ eq, onDoubleClick }: { eq: any; onDoubleClick: () => voi
       onDoubleClick={onDoubleClick}
     >
       <td className="px-8 py-2 align-top text-center">
-        <div className="flex flex-col items-center justify-center space-y-1">
-          <span className="font-mono font-black text-blue-600 dark:text-blue-500 text-[14px] tracking-[0.15em]">{eq.mobile_id}</span>
+        <div className="flex flex-col items-center justify-center space-y-0.5">
+          <span className="font-mono font-black text-blue-600 dark:text-blue-500 text-[14px] tracking-[0.15em] shrink-0 leading-none">{eq.mobile_id}</span>
           {eq.license_plate && (
-            <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-widest leading-none">{eq.license_plate}</span>
+            <span className="text-[11px] font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest leading-none">
+              {eq.license_plate}
+            </span>
           )}
         </div>
       </td>
       <td className="px-8 py-2 align-top">
         <div className="space-y-0.5">
-          <span className="text-zinc-400 font-black uppercase text-[8px] tracking-widest">{eq.brand_name || "—"}</span>
-          <p className="text-[13px] font-black uppercase text-zinc-900 dark:text-zinc-100 leading-tight">{eq.model_name || "—"}</p>
+          <span className="text-zinc-900 dark:text-white font-black uppercase text-[11px] tracking-widest leading-none block">{eq.brand_name || "—"}</span>
+          <p className="text-[11px] font-bold uppercase text-zinc-400 dark:text-zinc-500 leading-tight">{eq.model_name || "—"}</p>
         </div>
       </td>
       <td className="px-8 py-2 align-top">
         <div className="space-y-0.5">
-          <span className="text-zinc-400 font-black uppercase text-[8px] tracking-widest">{eq.type_name || "—"}</span>
-          <p className="text-[11px] font-bold uppercase text-zinc-700 dark:text-zinc-300">{eq.category_name || "—"}</p>
+          <span className="text-zinc-900 dark:text-white font-black uppercase text-[11px] tracking-widest leading-none block">{eq.type_name || "—"}</span>
+          <p className="text-[11px] font-bold uppercase text-zinc-600 dark:text-zinc-400 leading-tight">{eq.category_name || "—"}</p>
           {eq.subcategory_name && (
-            <p className="text-[10px] font-bold uppercase text-zinc-400">{eq.subcategory_name}</p>
+            <p className="text-[9px] font-bold uppercase text-zinc-400">{eq.subcategory_name}</p>
           )}
         </div>
       </td>
-      <td className="px-8 py-5 align-top whitespace-nowrap">
+      <td className="px-8 py-2 align-top whitespace-nowrap">
+        <div className="space-y-0.5">
+          <span className="font-mono text-[11px] font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-widest block leading-none">{eq.vin || "—"}</span>
+          {eq.engine_no && (
+            <span className="font-mono text-[11px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest block leading-none">{eq.engine_no}</span>
+          )}
+        </div>
+      </td>
+      <td className="px-8 py-2 align-top whitespace-nowrap">
         <span className="text-[11px] font-bold text-zinc-700 dark:text-zinc-300 uppercase tracking-widest">{eq.year || "—"}</span>
-      </td>
-      <td className="px-8 py-5 align-top whitespace-nowrap">
-        <span className="font-mono text-[11px] font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-widest">{eq.vin || "—"}</span>
-      </td>
-      <td className="px-8 py-5 align-top whitespace-nowrap">
-        <span className="font-mono text-[11px] font-bold text-zinc-600 dark:text-zinc-400 uppercase tracking-widest">{eq.engine_no || "—"}</span>
       </td>
       <td className="px-8 py-2 align-top">
         {eq.observations ? (
