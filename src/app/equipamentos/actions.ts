@@ -53,41 +53,73 @@ export async function getBrandsWithModels() {
 
   const { data, error } = await supabase
     .from('equipment_brands')
-    .select('*, equipment_models(*)')
+    .select('*, equipment(count), equipment_models(*, equipment(count))')
     .order('name', { ascending: true });
 
   if (error) throw error;
-  return data || [];
+  return (data || []).map(b => ({
+    ...b,
+    count: b.equipment?.[0]?.count || 0,
+    equipment_models: (b.equipment_models || []).map((m: any) => ({ ...m, count: m.equipment?.[0]?.count || 0 }))
+  }));
 }
 
-export async function upsertBrand(name: string) {
+export async function upsertBrand(name: string, id?: string) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
+
+  const payload: any = { name: name.toUpperCase().trim() };
+  if (id) payload.id = id;
 
   const { data, error } = await supabase
     .from('equipment_brands')
-    .insert({ name: name.toUpperCase().trim() })
+    .upsert(payload)
     .select()
     .single();
 
   if (error) throw error;
+  revalidatePath("/configuracoes/hierarquias");
   revalidatePath("/equipamentos");
   return data;
 }
 
-export async function upsertModel(brandId: string, name: string) {
+export async function deleteBrand(id: string) {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  const { error } = await supabase.from('equipment_brands').delete().eq('id', id);
+  if (error) throw error;
+  revalidatePath("/configuracoes/hierarquias");
+  revalidatePath("/equipamentos");
+  return { success: true };
+}
+
+export async function upsertModel(brandId: string, name: string, id?: string) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
+  const payload: any = { brand_id: brandId, name: name.toUpperCase().trim() };
+  if (id) payload.id = id;
+
   const { data, error } = await supabase
     .from('equipment_models')
-    .insert({ brand_id: brandId, name: name.toUpperCase().trim() })
+    .upsert(payload)
     .select()
     .single();
 
   if (error) throw error;
+  revalidatePath("/configuracoes/hierarquias");
   revalidatePath("/equipamentos");
   return data;
+}
+
+export async function deleteModel(id: string) {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  const { error } = await supabase.from('equipment_models').delete().eq('id', id);
+  if (error) throw error;
+  revalidatePath("/configuracoes/hierarquias");
+  revalidatePath("/equipamentos");
+  return { success: true };
 }
 
 // ─── TYPES / CATEGORIES / SUBCATEGORIES ───────────────────────────────────────
@@ -98,54 +130,107 @@ export async function getEquipmentTypesHierarchy() {
 
   const { data, error } = await supabase
     .from('equipment_types')
-    .select('*, equipment_categories(*, equipment_subcategories(*))')
+    .select('*, equipment(count), equipment_categories(*, equipment(count), equipment_subcategories(*, equipment(count)))')
     .order('name', { ascending: true });
 
   if (error) throw error;
-  return data || [];
+  return (data || []).map(t => ({
+    ...t,
+    count: t.equipment?.[0]?.count || 0,
+    equipment_categories: (t.equipment_categories || []).map((c: any) => ({
+      ...c,
+      count: c.equipment?.[0]?.count || 0,
+      equipment_subcategories: (c.equipment_subcategories || []).map((sc: any) => ({
+        ...sc,
+        count: sc.equipment?.[0]?.count || 0
+      }))
+    }))
+  }));
 }
 
-export async function upsertEquipmentType(name: string) {
+export async function upsertEquipmentType(name: string, id?: string) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
+
+  const payload: any = { name: name.toUpperCase().trim() };
+  if (id) payload.id = id;
 
   const { data, error } = await supabase
     .from('equipment_types')
-    .insert({ name: name.toUpperCase().trim() })
+    .upsert(payload)
     .select()
     .single();
 
   if (error) throw error;
+  revalidatePath("/configuracoes/hierarquias");
   revalidatePath("/equipamentos");
   return data;
 }
 
-export async function upsertEquipmentCategory(typeId: string, name: string) {
+export async function deleteEquipmentType(id: string) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
+  const { error } = await supabase.from('equipment_types').delete().eq('id', id);
+  if (error) throw error;
+  revalidatePath("/configuracoes/hierarquias");
+  revalidatePath("/equipamentos");
+  return { success: true };
+}
+
+export async function upsertEquipmentCategory(typeId: string, name: string, id?: string) {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+
+  const payload: any = { type_id: typeId, name: name.toUpperCase().trim() };
+  if (id) payload.id = id;
 
   const { data, error } = await supabase
     .from('equipment_categories')
-    .insert({ type_id: typeId, name: name.toUpperCase().trim() })
+    .upsert(payload)
     .select()
     .single();
 
   if (error) throw error;
+  revalidatePath("/configuracoes/hierarquias");
   revalidatePath("/equipamentos");
   return data;
 }
 
-export async function upsertEquipmentSubcategory(categoryId: string, name: string) {
+export async function deleteEquipmentCategory(id: string) {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  const { error } = await supabase.from('equipment_categories').delete().eq('id', id);
+  if (error) throw error;
+  revalidatePath("/configuracoes/hierarquias");
+  revalidatePath("/equipamentos");
+  return { success: true };
+}
+
+export async function upsertEquipmentSubcategory(categoryId: string, name: string, id?: string) {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
+  const payload: any = { category_id: categoryId, name: name.toUpperCase().trim() };
+  if (id) payload.id = id;
+
   const { data, error } = await supabase
     .from('equipment_subcategories')
-    .insert({ category_id: categoryId, name: name.toUpperCase().trim() })
+    .upsert(payload)
     .select()
     .single();
 
   if (error) throw error;
+  revalidatePath("/configuracoes/hierarquias");
   revalidatePath("/equipamentos");
   return data;
+}
+
+export async function deleteEquipmentSubcategory(id: string) {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  const { error } = await supabase.from('equipment_subcategories').delete().eq('id', id);
+  if (error) throw error;
+  revalidatePath("/configuracoes/hierarquias");
+  revalidatePath("/equipamentos");
+  return { success: true };
 }
