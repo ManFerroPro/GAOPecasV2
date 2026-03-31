@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTheme } from "next-themes";
 import { 
   Settings, 
   Palette, 
@@ -18,7 +19,7 @@ import { cn } from "@/lib/utils";
 
 export default function GeneralSettingsPage() {
   const [appName, setAppName] = useState("GAO Peças");
-  const [primaryColor, setPrimaryColor] = useState("#2563eb");
+  const { theme, setTheme } = useTheme();
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = () => {
@@ -35,7 +36,7 @@ export default function GeneralSettingsPage() {
         </div>
         <div className="flex gap-3">
           <button 
-            onClick={() => { setAppName("GAO Peças"); setPrimaryColor("#2563eb"); }}
+            onClick={() => { setAppName("GAO Peças"); setTheme("light"); }}
             className="p-3 bg-zinc-100 dark:bg-zinc-800 text-zinc-500 rounded-2xl hover:text-zinc-900 dark:hover:text-zinc-100 transition-all border border-zinc-200 dark:border-zinc-700 active:scale-95 duration-200 shadow-sm"
           >
             <RotateCcw className="h-5 w-5" />
@@ -76,42 +77,47 @@ export default function GeneralSettingsPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1 flex items-center gap-2">
-                    <Sun className="h-3 w-3 text-amber-500" />
-                    Cor do Tema (Dia)
-                  </label>
-                  <div className="flex gap-4">
-                    <div 
-                      className="h-14 w-14 rounded-2xl border-2 border-zinc-100 dark:border-zinc-800 shadow-lg cursor-pointer transition-transform hover:scale-105"
-                      style={{ backgroundColor: primaryColor }}
-                    />
-                    <input 
-                      type="text" 
-                      value={primaryColor}
-                      onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="flex-1 px-6 py-4 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border-2 border-zinc-100 dark:border-zinc-800 outline-none focus:border-blue-600/30 dark:focus:border-blue-500/30 transition-all font-mono text-[14px] font-bold text-zinc-600 uppercase"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1 flex items-center gap-2">
-                    <Moon className="h-3 w-3 text-blue-400" />
-                    Cor do Tema (Noite)
-                  </label>
-                  <div className="flex gap-4">
-                    <div 
-                      className="h-14 w-14 rounded-2xl border-2 border-zinc-100 dark:border-zinc-800 shadow-lg cursor-pointer transition-transform hover:scale-105"
-                      style={{ backgroundColor: "#3b82f6" }}
-                    />
-                    <input 
-                      type="text" 
-                      defaultValue="#3B82F6"
-                      className="flex-1 px-6 py-4 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border-2 border-zinc-100 dark:border-zinc-800 outline-none focus:border-blue-600/30 dark:focus:border-blue-500/30 transition-all font-mono text-[14px] font-bold text-zinc-600 uppercase"
-                    />
-                  </div>
+              <div className="space-y-4">
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">
+                  Paleta de Tema Automática
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <ThemeOptionCard 
+                    activeTheme={theme} 
+                    themeKey="light" 
+                    title="Clássico (Dia)" 
+                    bgColor="bg-white" 
+                    primaryColor="bg-blue-600" 
+                    icon={Sun} 
+                    onClick={() => setTheme("light")} 
+                  />
+                  <ThemeOptionCard 
+                    activeTheme={theme} 
+                    themeKey="dark" 
+                    title="Clássico (Noite)" 
+                    bgColor="bg-zinc-950" 
+                    primaryColor="bg-blue-500" 
+                    icon={Moon} 
+                    onClick={() => setTheme("dark")} 
+                  />
+                  <ThemeOptionCard 
+                    activeTheme={theme} 
+                    themeKey="light-orange" 
+                    title="Avelã (Dia)" 
+                    bgColor="bg-orange-50/50" 
+                    primaryColor="bg-orange-500" 
+                    icon={Sun} 
+                    onClick={() => setTheme("light-orange")} 
+                  />
+                  <ThemeOptionCard 
+                    activeTheme={theme} 
+                    themeKey="dark-orange" 
+                    title="Avelã (Noite)" 
+                    bgColor="bg-zinc-950/80" 
+                    primaryColor="bg-orange-400" 
+                    icon={Moon} 
+                    onClick={() => setTheme("dark-orange")} 
+                  />
                 </div>
               </div>
 
@@ -188,6 +194,34 @@ function SectionCard({ title, icon: Icon, children }: { title: string; icon: any
         <h2 className="text-[18px] font-black uppercase tracking-tighter text-zinc-900 dark:text-zinc-100">{title}</h2>
       </div>
       {children}
+    </div>
+  );
+}
+
+function ThemeOptionCard({ activeTheme, themeKey, title, bgColor, primaryColor, icon: Icon, onClick }: any) {
+  const isActive = activeTheme === themeKey;
+  return (
+    <div 
+      onClick={onClick}
+      className={cn(
+        "cursor-pointer rounded-2xl border-2 p-4 flex flex-col items-center justify-center gap-3 transition-all hover:scale-105",
+        isActive ? "border-blue-500 shadow-lg shadow-blue-500/20 ring-4 ring-blue-500/10" : "border-zinc-200 dark:border-zinc-800 opacity-70 hover:opacity-100"
+      )}
+    >
+      <div className={cn("h-10 w-10 rounded-full flex items-center justify-center border shadow-sm", bgColor, "border-zinc-200/50 dark:border-zinc-700/50")}>
+        <div className={cn("h-4 w-4 rounded-full", primaryColor)} />
+      </div>
+      <div className="flex flex-col items-center">
+        <span className="text-[9px] font-black uppercase tracking-widest text-zinc-900 dark:text-zinc-100 text-center">{title}</span>
+      </div>
+      <div className="absolute top-2 right-2">
+        <Icon className={cn("h-3 w-3", isActive ? "text-blue-500" : "text-zinc-400")} />
+      </div>
+      {isActive && (
+        <div className="absolute -top-3 -right-3 h-6 w-6 bg-blue-500 rounded-full flex items-center justify-center border-4 border-white dark:border-zinc-900">
+          <Check className="h-3 w-3 text-white" />
+        </div>
+      )}
     </div>
   );
 }

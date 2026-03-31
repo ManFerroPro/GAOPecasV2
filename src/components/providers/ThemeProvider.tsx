@@ -7,5 +7,12 @@ export function ThemeProvider({
   children,
   ...props
 }: React.ComponentProps<typeof NextThemesProvider>) {
-  return <NextThemesProvider {...props}>{children}</NextThemesProvider>;
+  return (
+    <NextThemesProvider 
+      themes={['light', 'dark', 'light-orange', 'dark-orange']} 
+      {...props}
+    >
+      {children}
+    </NextThemesProvider>
+  );
 }
