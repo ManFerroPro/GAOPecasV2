@@ -1,42 +1,244 @@
-"use client"; // Note: In Next.js 15, we often use 'use server' inside a separate file for actions, but I'll use a standard pattern.
+"use server";
 
-import { createClient } from "@/utils/supabase/client";
+import { createClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers";
+import { revalidatePath } from "next/cache";
+
+// ─── FETCH USER DELEGATIONS ───────────────────────────────────────────────────────
+
+export async function getUserDelegations() {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data: perms } = await supabase
+    .from('user_delegation_roles')
+    .select('delegation_id')
+    .eq('user_id', user.id);
+
+  if (!perms || perms.length === 0) return [];
+
+  const delegationIds = [...new Set(perms.map(p => p.delegation_id))];
+
+  const { data: delegations } = await supabase
+    .from('delegations')
+    .select('id, name')
+    .in('id', delegationIds)
+    .order('name');
+
+  return delegations || [];
+}
+
+// ─── FETCH ALL ORDERS ───────────────────────────────────────────────────────────
+
+export async function getOrders() {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+
+  const delegations = await getUserDelegations();
+  const delegationIds = delegations.map(d => d.id);
+
+  if (delegationIds.length === 0) return [];
+
+  // Fetch orders with lines, delegations, and profiles (for requester)
+  const { data, error } = await supabase
+    .from("orders")
+    .select(`
+      *,
+      order_lines (
+        id,
+        item_name,
+        requested_qty,
+        status
+      ),
+      delegations (name),
+      profiles!orders_created_by_fkey (full_name)
+    `)
+    .in("delegation_id", delegationIds)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error getOrders:", error.message || error);
+    // Fallback: If the column doesn't exist, we fallback to old query without the delegation filters
+    if (error.code === 'PGRST200' || error.message?.includes('not found')) {
+      console.warn("Delegation columns might be missing. Using fallback query.");
+      const fallback = await supabase
+        .from("orders")
+        .select('*, order_lines(id, item_name, requested_qty, status)')
+        .order("created_at", { ascending: false });
+      return mapOrdersWithEquipment(supabase, fallback.data || []);
+    }
+    return [];
+  }
+
+  return mapOrdersWithEquipment(supabase, data || []);
+}
+
+// Helper to map equipment data
+async function mapOrdersWithEquipment(supabase: any, ordersData: any[]) {
+  const equipmentIds = [...new Set((ordersData || []).map(o => o.equipment_id).filter(Boolean))];
+  let equipmentMap: Record<string, any> = {};
+  
+  if (equipmentIds.length > 0) {
+    const { data: eqData } = await supabase
+      .from("equipment")
+      .select("*, equipment_brands(name), equipment_models(name)")
+      .in("mobile_id", equipmentIds);
+    
+    (eqData || []).forEach((eq: any) => {
+      equipmentMap[eq.mobile_id] = eq;
+    });
+  }
+
+  return (ordersData || []).map((order: any) => {
+    const eq = equipmentMap[order.equipment_id];
+    return {
+      ...order,
+      equipment_display: eq
+        ? `${eq.mobile_id}${eq.license_plate ? ` (${eq.license_plate})` : ""}`
+        : order.equipment_id || "—",
+      equipment_brand: eq?.equipment_brands?.name || null,
+      equipment_model: eq?.equipment_models?.name || null,
+      lines_count: order.order_lines?.length || 0,
+      lines: order.order_lines || [],
+      delegation_name: order.delegations?.name || "N/A",
+      requester_name: order.profiles?.full_name || "N/A",
+    };
+  });
+}
+
+// ─── FETCH EQUIPMENT LIST (for selector) ────────────────────────────────────────
+
+export async function getEquipmentForSelector() {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+
+  const { data, error } = await supabase
+    .from("equipment")
+    .select(`
+      *,
+      equipment_brands (name),
+      equipment_models (name)
+    `)
+    .order("mobile_id", { ascending: true });
+
+  if (error) {
+    console.error("Error getEquipmentForSelector:", error);
+    return [];
+  }
+
+  return (data || []).map((eq: any) => ({
+    id: eq.mobile_id,
+    mobile_id: eq.mobile_id,
+    license_plate: eq.license_plate,
+    brand: eq.equipment_brands?.name || "",
+    model: eq.equipment_models?.name || "",
+    observations: eq.observations || "",
+    display: `${eq.mobile_id}${eq.license_plate ? ` — ${eq.license_plate}` : ""}`,
+  }));
+}
+
+// ─── FETCH ITEMS LIST (for article selector) ────────────────────────────────────
+
+export async function getItemsForSelector() {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+
+  const { data, error } = await supabase
+    .from("items")
+    .select("omatapalo_code, description, unit")
+    .order("omatapalo_code", { ascending: true });
+
+  if (error) {
+    console.error("Error getItemsForSelector:", error);
+    return [];
+  }
+
+  return data || [];
+}
+
+// ─── CREATE ORDER ───────────────────────────────────────────────────────────────
 
 export async function createOrder(orderData: {
   equipmentId: string;
   priority: string;
-  items: any[];
+  items: { omatapalo_code: string; description: string; requestedQty: number; unit: string }[];
   teamsLink?: string;
 }) {
-  const supabase = createClient();
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
 
   // 1. Insert the main order
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .insert({
-      equipment_id: orderData.equipmentId || null, 
+      equipment_id: orderData.equipmentId || null,
       priority: orderData.priority,
       status: "Submetido",
-      teams_link: orderData.teamsLink,
+      teams_link: orderData.teamsLink || null,
     })
     .select()
     .single();
 
   if (orderError) throw orderError;
 
-  // 2. Insert item lines
-  const lines = orderData.items.map(item => ({
-    order_id: order.id,
-    item_name: item.name, 
-    requested_qty: item.quantity,
-    status: "Pending"
-  }));
+  // 2. Insert order lines
+  if (orderData.items.length > 0) {
+    const lines = orderData.items.map(item => ({
+      order_id: order.id,
+      item_name: `${item.omatapalo_code} — ${item.description}`,
+      requested_qty: item.requestedQty,
+      status: "Pending",
+    }));
 
-  const { error: linesError } = await supabase
-    .from("order_lines")
-    .insert(lines);
+    const { error: linesError } = await supabase
+      .from("order_lines")
+      .insert(lines);
 
-  if (linesError) throw linesError;
+    if (linesError) throw linesError;
+  }
 
+  revalidatePath("/requisicao");
   return order;
+}
+
+// ─── UPDATE ORDER STATUS ────────────────────────────────────────────────────────
+
+export async function updateOrderStatus(orderId: string, newStatus: string) {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+
+  const { data, error } = await supabase
+    .from("orders")
+    .update({ status: newStatus, updated_at: new Date().toISOString() })
+    .eq("id", orderId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  revalidatePath("/requisicao");
+  return data;
+}
+
+// ─── DELETE ORDER ───────────────────────────────────────────────────────────────
+
+export async function deleteOrder(orderId: string) {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+
+  // Delete order lines first (in case no CASCADE)
+  await supabase.from("order_lines").delete().eq("order_id", orderId);
+
+  const { error } = await supabase
+    .from("orders")
+    .delete()
+    .eq("id", orderId);
+
+  if (error) throw error;
+
+  revalidatePath("/requisicao");
+  return { success: true };
 }

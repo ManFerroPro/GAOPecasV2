@@ -104,6 +104,13 @@ export async function getUsersWithPermissions() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceRoleKey) return [];
+  const supabaseAdmin = require('@supabase/supabase-js').createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    serviceRoleKey
+  );
+
   try {
     // 1. Fetch profiles
     const { data: profiles, error: profileError } = await supabase
@@ -113,13 +120,17 @@ export async function getUsersWithPermissions() {
 
     if (profileError) throw profileError;
 
-    // 2. Fetch all related data in separate queries to avoid join issues
+    // 2. Fetch all auth users (for accurate emails)
+    const { data: { users: authUsers }, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+
+    // 3. Fetch all related data in separate queries
     const { data: allPerms } = await supabase.from('user_delegation_roles').select('*');
     const { data: allDelegations } = await supabase.from('delegations').select('id, name');
     const { data: allRoles } = await supabase.from('app_roles').select('id, name');
 
-    // 3. Manual map to build the hierarchy
+    // 4. Map to build the hierarchy
     return (profiles || []).map(profile => {
+      const authUser = authUsers?.find((u: any) => u.id === profile.id);
       const userPerms = (allPerms || []).filter(p => p.user_id === profile.id);
       
       const delegationMap: Record<string, string[]> = {};
@@ -136,7 +147,7 @@ export async function getUsersWithPermissions() {
       return {
         id: profile.id,
         name: profile.full_name,
-        email: profile.email || "N/A",
+        email: authUser?.email || profile.email || "N/A", // priority to auth email
         isAdmin: profile.is_admin,
         status: profile.status || "Ativo",
         lastLogin: profile.updated_at ? new Date(profile.updated_at).toLocaleString() : "Nunca",
@@ -190,12 +201,23 @@ export async function upsertUserWithPermissions(userData: any) {
       finalUserId = newUser.user.id;
     }
 
-    // 1. Upsert Profile (DO NOT INCLUDE email or status if they aren't in the schema)
+    // If email changed for an existing user, update auth.users
+    if (existingUser?.user && existingUser.user.email !== userData.email) {
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(finalUserId, { 
+        email: userData.email,
+        user_metadata: { full_name: userData.name }
+      });
+      if (updateError) console.warn("Failed to update auth email:", updateError.message);
+    }
+
+    // 1. Upsert Profile
+    // We do NOT save 'email' here because it belongs to auth.users and crashes 'profiles' if it lacks the column
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .upsert({
         id: finalUserId,
         full_name: userData.name,
+        status: userData.status || "Ativo",
         is_admin: userData.isAdmin,
         updated_at: new Date().toISOString()
       });

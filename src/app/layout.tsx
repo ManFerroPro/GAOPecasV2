@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { AppIdentityProvider } from "@/components/providers/AppIdentityProvider";
 import Header from "@/components/layout/Header";
 
 const geistSans = Geist({
@@ -33,10 +34,12 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          <div className="relative flex min-h-screen flex-col">
-            <Header />
-            <main className="flex-1 p-8">{children}</main>
-          </div>
+          <AppIdentityProvider>
+            <div className="relative flex min-h-screen flex-col">
+              <Header />
+              <main className="flex-1 p-8">{children}</main>
+            </div>
+          </AppIdentityProvider>
         </ThemeProvider>
       </body>
     </html>

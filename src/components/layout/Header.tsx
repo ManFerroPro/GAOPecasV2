@@ -31,20 +31,39 @@ const navigation = [
   { name: "Configurações", href: "/configuracoes", icon: Settings, roles: ["Administrador"] },
 ];
 
+import { useAppIdentity } from "@/components/providers/AppIdentityProvider";
+
 export default function Header() {
   const pathname = usePathname();
+  const { appName, appSubtitle, appLogo } = useAppIdentity();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:bg-zinc-950/95 dark:border-zinc-800 shadow-xl shadow-zinc-200/50 dark:shadow-zinc-950/50">
       <div className="flex h-20 items-center px-10 w-full justify-between">
         <div className="flex items-center gap-12">
-          <Link href="/" className="flex items-center gap-4">
-            <div className="p-2 bg-blue-600 rounded-lg text-white">
-              <Box className="h-8 w-8" />
+          <Link href="/" className="flex items-center gap-4 group">
+            {appLogo ? (
+              <div className="h-12 w-12 rounded-xl overflow-hidden shadow-md flex items-center justify-center bg-white border border-zinc-100 dark:border-zinc-800">
+                <img src={appLogo} alt="Logo" className="w-full h-full object-contain p-1" />
+              </div>
+            ) : (
+              <div className="p-2.5 bg-blue-600 rounded-xl text-white shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
+                <Box className="h-7 w-7" />
+              </div>
+            )}
+            <div className="flex flex-col justify-center">
+              <span className={cn(
+                "font-black tracking-tighter text-blue-600 dark:text-blue-500 uppercase whitespace-nowrap leading-none transition-all",
+                appName.length > 15 ? "text-2xl" : "text-4xl"
+              )}>
+                {appName || "GAO PEÇAS"}
+              </span>
+              {appSubtitle && (
+                <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400 mt-1">
+                  {appSubtitle}
+                </span>
+              )}
             </div>
-            <span className="text-5xl font-black tracking-tighter text-blue-600 dark:text-blue-500 uppercase whitespace-nowrap">
-              GAO PEÇAS
-            </span>
           </Link>
           <nav className="hidden xl:flex items-center gap-1">
             {navigation.filter(item => item.roles.includes("Administrador")).map((item) => {

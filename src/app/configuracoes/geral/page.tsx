@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTheme } from "next-themes";
+import { useAppIdentity } from "@/components/providers/AppIdentityProvider";
 import { 
   Settings, 
   Palette, 
@@ -18,13 +19,38 @@ import {
 import { cn } from "@/lib/utils";
 
 export default function GeneralSettingsPage() {
-  const [appName, setAppName] = useState("GAO Peças");
   const { theme, setTheme } = useTheme();
+  const { appName: currentName, appSubtitle: currentSubtitle, appLogo: currentLogo, updateIdentity } = useAppIdentity();
+  
+  const [appName, setAppName] = useState(currentName);
+  const [appSubtitle, setAppSubtitle] = useState(currentSubtitle);
+  const [appLogo, setAppLogo] = useState(currentLogo);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Sync state if context changes externally (e.g. initial load)
+  useEffect(() => {
+    setAppName(currentName);
+    setAppSubtitle(currentSubtitle);
+    setAppLogo(currentLogo);
+  }, [currentName, currentSubtitle, currentLogo]);
 
   const handleSave = () => {
     setIsSaving(true);
-    setTimeout(() => setIsSaving(false), 1500);
+    updateIdentity({ appName, appSubtitle, appLogo });
+    setTimeout(() => setIsSaving(false), 800);
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Very naive check for size ~5MB
+      if (file.size > 5 * 1024 * 1024) return alert("Ficheiro excede 5MB");
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAppLogo(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
@@ -77,6 +103,17 @@ export default function GeneralSettingsPage() {
                 />
               </div>
 
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">Subtítulo da Aplicação</label>
+                <input 
+                  type="text" 
+                  value={appSubtitle}
+                  onChange={(e) => setAppSubtitle(e.target.value)}
+                  placeholder="EX: GESTÃO DE ARMAZÉNS OMATAPALO"
+                  className="w-full px-6 py-4 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border-2 border-zinc-100 dark:border-zinc-800 outline-none focus:border-blue-600/30 dark:focus:border-blue-500/30 transition-all font-black uppercase text-[12px] tracking-widest text-zinc-900 dark:text-zinc-100"
+                />
+              </div>
+
               <div className="space-y-4">
                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 pl-1">
                   Paleta de Tema Automática
@@ -121,16 +158,33 @@ export default function GeneralSettingsPage() {
                 </div>
               </div>
 
-              <div className="p-8 rounded-3xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 flex flex-col items-center justify-center text-center gap-4 bg-zinc-50/50 dark:bg-zinc-950/20 group hover:bg-blue-50/50 dark:hover:bg-blue-900/5 transition-all cursor-pointer">
-                <div className="p-4 bg-white dark:bg-zinc-800 rounded-2xl shadow-xl shadow-zinc-200/50 group-hover:scale-110 transition-transform">
-                  <ImageIcon className="h-8 w-8 text-zinc-400 group-hover:text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-tighter">Logótipo da Empresa</p>
-                  <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mt-1">PNG, SVG OU JPG ATÉ 5MB</p>
-                </div>
-                <button className="px-6 py-2 border-2 border-zinc-100 dark:border-zinc-800 rounded-xl font-black uppercase text-[9px] tracking-widest text-zinc-400 group-hover:border-blue-600 group-hover:text-blue-600 transition-colors">Selecionar Ficheiro</button>
-              </div>
+              <label className="relative p-8 rounded-3xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 flex flex-col items-center justify-center text-center gap-4 bg-zinc-50/50 dark:bg-zinc-950/20 group hover:bg-blue-50/50 dark:hover:bg-blue-900/5 transition-all cursor-pointer">
+                <input type="file" className="hidden" accept="image/png, image/jpeg, image/svg+xml" onChange={handleLogoUpload} />
+                {appLogo ? (
+                  <div className="relative">
+                     <div className="h-32 w-48 bg-white dark:bg-zinc-900 rounded-2xl p-4 shadow-xl shadow-zinc-200/50 flex items-center justify-center border-2 border-zinc-100 dark:border-zinc-800">
+                       <img src={appLogo} alt="Logo Prev" className="max-h-full max-w-full object-contain" />
+                     </div>
+                     <button 
+                       onClick={(e) => { e.preventDefault(); setAppLogo(null); }}
+                       className="absolute -top-3 -right-3 h-8 w-8 bg-black text-white hover:bg-red-600 rounded-full flex items-center justify-center shadow-lg transition-colors border-2 border-white dark:border-zinc-800"
+                     >
+                       <RotateCcw className="h-3 w-3" />
+                     </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="p-4 bg-white dark:bg-zinc-800 rounded-2xl shadow-xl shadow-zinc-200/50 group-hover:scale-110 transition-transform">
+                      <ImageIcon className="h-8 w-8 text-zinc-400 group-hover:text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-tighter">Logótipo da Empresa</p>
+                      <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mt-1">PNG, SVG OU JPG ATÉ 5MB</p>
+                    </div>
+                    <div className="px-6 py-2 border-2 border-zinc-100 dark:border-zinc-800 rounded-xl font-black uppercase text-[9px] tracking-widest text-zinc-400 group-hover:border-blue-600 group-hover:text-blue-600 transition-colors">Selecionar Ficheiro</div>
+                  </>
+                )}
+              </label>
             </div>
           </SectionCard>
 
