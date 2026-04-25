@@ -104,12 +104,24 @@ export async function getUsersWithPermissions() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
+  let authUsers: any[] = [];
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!serviceRoleKey) return [];
-  const supabaseAdmin = require('@supabase/supabase-js').createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    serviceRoleKey
-  );
+  
+  if (serviceRoleKey) {
+    try {
+      const supabaseAdmin = require('@supabase/supabase-js').createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        serviceRoleKey
+      );
+      // Fetch up to 1000 users to avoid pagination limits
+      const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      if (!error && data?.users) {
+        authUsers = data.users;
+      }
+    } catch (e) {
+      console.warn("Could not fetch auth users:", e);
+    }
+  }
 
   try {
     // 1. Fetch profiles
@@ -120,18 +132,22 @@ export async function getUsersWithPermissions() {
 
     if (profileError) throw profileError;
 
-    // 2. Fetch all auth users (for accurate emails)
-    const { data: { users: authUsers }, error: authError } = await supabaseAdmin.auth.admin.listUsers();
-
-    // 3. Fetch all related data in separate queries
+    // 2. Fetch all related data in separate queries
     const { data: allPerms } = await supabase.from('user_delegation_roles').select('*');
     const { data: allDelegations } = await supabase.from('delegations').select('id, name');
     const { data: allRoles } = await supabase.from('app_roles').select('id, name');
 
-    // 4. Map to build the hierarchy based on Auth Users
-    return (authUsers || []).map((authUser: any) => {
-      const profile = profiles?.find((p: any) => p.id === authUser.id);
-      const userPerms = (allPerms || []).filter((p: any) => p.user_id === authUser.id);
+    // 3. Create a unified set of ALL user IDs (from auth.users AND profiles)
+    const allUserIds = new Set([
+      ...authUsers.map(u => u.id),
+      ...(profiles || []).map(p => p.id)
+    ]);
+
+    // 4. Map to build the hierarchy
+    return Array.from(allUserIds).map(id => {
+      const authUser = authUsers.find(u => u.id === id);
+      const profile = profiles?.find((p: any) => p.id === id);
+      const userPerms = (allPerms || []).filter((p: any) => p.user_id === id);
       
       const delegationMap: Record<string, string[]> = {};
       userPerms.forEach((p: any) => {
@@ -145,12 +161,12 @@ export async function getUsersWithPermissions() {
       });
 
       return {
-        id: authUser.id,
-        name: profile?.full_name || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || "Sem Nome",
-        email: authUser.email || profile?.email || "N/A",
+        id,
+        name: profile?.full_name || authUser?.user_metadata?.full_name || authUser?.email?.split('@')[0] || "Sem Nome",
+        email: authUser?.email || profile?.email || "N/A",
         isAdmin: profile?.is_admin || false,
         status: profile?.status || "Ativo",
-        lastLogin: authUser.last_sign_in_at ? new Date(authUser.last_sign_in_at).toLocaleString() : (profile?.updated_at ? new Date(profile.updated_at).toLocaleString() : "Nunca"),
+        lastLogin: authUser?.last_sign_in_at ? new Date(authUser.last_sign_in_at).toLocaleString() : (profile?.updated_at ? new Date(profile.updated_at).toLocaleString() : "Nunca"),
         permissions: Object.entries(delegationMap).map(([delegation, roles]) => ({
           delegation,
           roles
