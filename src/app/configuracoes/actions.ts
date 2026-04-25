@@ -133,9 +133,9 @@ export async function getUsersWithPermissions() {
     if (profileError) throw profileError;
 
     // 2. Fetch all related data in separate queries
-    const { data: allPerms } = await supabase.from('user_delegation_roles').select('*');
-    const { data: allDelegations } = await supabase.from('delegations').select('id, name');
-    const { data: allRoles } = await supabase.from('app_roles').select('id, name');
+    const { data: allPerms } = await supabaseAdmin.from('user_delegation_roles').select('*');
+    const { data: allDelegations } = await supabaseAdmin.from('delegations').select('id, name');
+    const { data: allRoles } = await supabaseAdmin.from('app_roles').select('id, name');
 
     // 3. Create a unified set of ALL user IDs (from auth.users AND profiles)
     const allUserIds = new Set([
@@ -221,6 +221,7 @@ export async function upsertUserWithPermissions(userData: any) {
     if (existingUser?.user && existingUser.user.email !== userData.email) {
       const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(finalUserId, { 
         email: userData.email,
+        email_confirm: true,
         user_metadata: { full_name: userData.name }
       });
       if (updateError) console.warn("Failed to update auth email:", updateError.message);
@@ -244,8 +245,8 @@ export async function upsertUserWithPermissions(userData: any) {
     await supabaseAdmin.from('user_delegation_roles').delete().eq('user_id', finalUserId);
 
     // 3. Fetch IDs for mapping
-    const { data: delegations } = await supabase.from('delegations').select('id, name');
-    const { data: roles } = await supabase.from('app_roles').select('id, name');
+    const { data: delegations } = await supabaseAdmin.from('delegations').select('id, name');
+    const { data: roles } = await supabaseAdmin.from('app_roles').select('id, name');
 
     // 4. Insert New Permissions
     if (userData.permissions?.length > 0) {
