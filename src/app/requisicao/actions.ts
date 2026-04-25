@@ -70,8 +70,13 @@ export async function getOrders() {
   const delegations = await getUserDelegations();
   const delegationIds = delegations.map(d => d.id);
 
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const adminClient = serviceRoleKey 
+    ? require('@supabase/supabase-js').createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceRoleKey)
+    : supabase;
+
   // Fetch orders with lines, delegations, and profiles (for requester)
-  const { data, error } = await supabase
+  const { data, error } = await adminClient
     .from("orders")
     .select(`
       *,
@@ -92,16 +97,16 @@ export async function getOrders() {
     // Fallback: If the column doesn't exist, we fallback to old query without the delegation filters
     if (error.code === 'PGRST200' || error.message?.includes('not found')) {
       console.warn("Delegation columns might be missing. Using fallback query.");
-      const fallback = await supabase
+      const fallback = await adminClient
         .from("orders")
         .select('*, order_lines(id, item_name, requested_qty, status)')
         .order("created_at", { ascending: false });
-      return mapOrdersWithEquipment(supabase, fallback.data || []);
+      return mapOrdersWithEquipment(adminClient, fallback.data || []);
     }
     return [];
   }
 
-  return mapOrdersWithEquipment(supabase, data || []);
+  return mapOrdersWithEquipment(adminClient, data || []);
 }
 
 // Helper to map equipment data
