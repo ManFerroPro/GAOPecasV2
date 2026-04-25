@@ -106,10 +106,11 @@ export async function getUsersWithPermissions() {
 
   let authUsers: any[] = [];
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  let supabaseAdmin: any = null;
   
   if (serviceRoleKey) {
     try {
-      const supabaseAdmin = require('@supabase/supabase-js').createClient(
+      supabaseAdmin = require('@supabase/supabase-js').createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         serviceRoleKey
       );
@@ -133,9 +134,11 @@ export async function getUsersWithPermissions() {
     if (profileError) throw profileError;
 
     // 2. Fetch all related data in separate queries
-    const { data: allPerms } = await supabaseAdmin.from('user_delegation_roles').select('*');
-    const { data: allDelegations } = await supabaseAdmin.from('delegations').select('id, name');
-    const { data: allRoles } = await supabaseAdmin.from('app_roles').select('id, name');
+    // Fallback to normal supabase if admin is not available
+    const adminClient = supabaseAdmin || supabase;
+    const { data: allPerms } = await adminClient.from('user_delegation_roles').select('*');
+    const { data: allDelegations } = await adminClient.from('delegations').select('id, name');
+    const { data: allRoles } = await adminClient.from('app_roles').select('id, name');
 
     // 3. Create a unified set of ALL user IDs (from auth.users AND profiles)
     const allUserIds = new Set([
