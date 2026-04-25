@@ -59,7 +59,11 @@ export default function UserManagementPage() {
   const handleCreateOrUpdate = async (userData: any) => {
     try {
       setLoading(true);
-      await upsertUserWithPermissions(userData);
+      const res = await upsertUserWithPermissions(userData);
+      if (res?.error) {
+        alert("Erro ao guardar utilizador: " + res.error);
+        return;
+      }
       await loadUsers();
       setIsModalOpen(false);
       setEditingUser(null);

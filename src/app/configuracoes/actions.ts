@@ -185,7 +185,7 @@ export async function upsertUserWithPermissions(userData: any) {
 
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!serviceRoleKey) {
-    throw new Error("⚠️ A variável SUPABASE_SERVICE_ROLE_KEY não está definida no .env.local. É obrigatória para criar utilizadores na base de dados (auth.users). Vá ao seu painel Supabase > Settings > API e copie a 'service_role secret'.");
+    return { error: "⚠️ A variável SUPABASE_SERVICE_ROLE_KEY não está definida nas Variáveis de Ambiente da VERCEL. É obrigatória para editar utilizadores na base de dados (auth.users)." };
   }
 
   // We need an admin client to create raw users in auth.users if they don't exist yet!
@@ -276,7 +276,7 @@ export async function upsertUserWithPermissions(userData: any) {
     return { success: true };
   } catch (err: any) {
     console.error("Error in upsertUserWithPermissions:", err);
-    throw new Error(err.message || "Unknown error occurred while guarding user");
+    return { error: err.message || "Unknown error occurred while guarding user" };
   }
 }
 
