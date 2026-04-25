@@ -255,11 +255,11 @@ export async function upsertUserWithPermissions(userData: any) {
     if (userData.permissions?.length > 0) {
       const inserts: any[] = [];
       userData.permissions.forEach((p: any) => {
-        const delId = delegations?.find(d => d.name === p.delegation)?.id;
+        const delId = delegations?.find((d: any) => d.name === p.delegation)?.id;
         if (!delId) return;
 
         p.roles.forEach((roleName: string) => {
-          const roleId = roles?.find(r => r.name === roleName)?.id;
+          const roleId = roles?.find((r: any) => r.name === roleName)?.id;
           if (roleId) {
             inserts.push({
               user_id: finalUserId,
