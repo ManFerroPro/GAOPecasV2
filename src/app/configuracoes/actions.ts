@@ -129,14 +129,14 @@ export async function getUsersWithPermissions() {
     const { data: allRoles } = await supabase.from('app_roles').select('id, name');
 
     // 4. Map to build the hierarchy based on Auth Users
-    return (authUsers || []).map(authUser => {
-      const profile = profiles?.find(p => p.id === authUser.id);
-      const userPerms = (allPerms || []).filter(p => p.user_id === authUser.id);
+    return (authUsers || []).map((authUser: any) => {
+      const profile = profiles?.find((p: any) => p.id === authUser.id);
+      const userPerms = (allPerms || []).filter((p: any) => p.user_id === authUser.id);
       
       const delegationMap: Record<string, string[]> = {};
-      userPerms.forEach(p => {
-        const delName = allDelegations?.find(d => d.id === p.delegation_id)?.name;
-        const roleName = allRoles?.find(r => r.id === p.role_id)?.name;
+      userPerms.forEach((p: any) => {
+        const delName = allDelegations?.find((d: any) => d.id === p.delegation_id)?.name;
+        const roleName = allRoles?.find((r: any) => r.id === p.role_id)?.name;
         
         if (delName && roleName) {
           if (!delegationMap[delName]) delegationMap[delName] = [];
