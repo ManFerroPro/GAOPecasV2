@@ -11,6 +11,7 @@ interface RequisitionListClientProps {
   initialEquipment: any[];
   initialItems: any[];
   userDelegations: any[];
+  currentUserName: string;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -28,7 +29,7 @@ const PRIORITY_COLORS: Record<string, string> = {
   "Emergência": "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900/50",
 };
 
-export default function RequisitionListClient({ initialOrders, initialEquipment, initialItems, userDelegations }: RequisitionListClientProps) {
+export default function RequisitionListClient({ initialOrders, initialEquipment, initialItems, userDelegations, currentUserName }: RequisitionListClientProps) {
   const [orders, setOrders] = useState(initialOrders);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any>(null);
@@ -281,6 +282,7 @@ export default function RequisitionListClient({ initialOrders, initialEquipment,
           equipmentList={initialEquipment}
           itemsList={initialItems}
           userDelegations={userDelegations}
+          currentUserName={currentUserName}
           onClose={handleModalClose}
         />
       )}

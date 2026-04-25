@@ -10,12 +10,13 @@ interface RequisitionFormModalProps {
   equipmentList: any[];
   itemsList: any[];
   userDelegations?: any[];
+  currentUserName?: string;
   onClose: (success?: boolean) => void;
 }
 
 const STATUSES = ["Submetido", "Validado", "Aprovado", "Em Compra", "Recebido", "Rejeitado"];
 
-export default function RequisitionFormModal({ initialData, equipmentList, itemsList, userDelegations, onClose }: RequisitionFormModalProps) {
+export default function RequisitionFormModal({ initialData, equipmentList, itemsList, userDelegations, currentUserName, onClose }: RequisitionFormModalProps) {
   const isNew = !initialData;
   const [isEditing, setIsEditing] = useState(isNew);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -23,6 +24,9 @@ export default function RequisitionFormModal({ initialData, equipmentList, items
   const [selectedDelegationId, setSelectedDelegationId] = useState(
     initialData?.delegation || (userDelegations?.length === 1 ? userDelegations[0].id : "")
   );
+  
+  const initialReqType = initialData ? (initialData.equipment_id ? "equipamento" : "stock") : "equipamento";
+  const [reqType, setReqType] = useState<"equipamento" | "stock">(initialReqType);
   const [selectedEquipmentId, setSelectedEquipmentId] = useState(initialData?.equipment_id || "");
   const [priority, setPriority] = useState(initialData?.priority || "Normal");
   const [observations, setObservations] = useState(initialData?.observations || "");
@@ -78,7 +82,7 @@ export default function RequisitionFormModal({ initialData, equipmentList, items
     try {
       if (isNew) {
         await createOrder({
-          equipmentId: selectedEquipmentId,
+          equipmentId: reqType === "equipamento" ? selectedEquipmentId : "",
           delegationId: selectedDelegationId,
           priority,
           observations,
@@ -121,13 +125,19 @@ export default function RequisitionFormModal({ initialData, equipmentList, items
       <div className="bg-white dark:bg-zinc-900 rounded-[2.5rem] w-full max-w-[95vw] lg:max-w-7xl flex flex-col overflow-hidden border-2 border-zinc-100 dark:border-zinc-800 h-[90vh]">
 
         {/* Header */}
-        <div className="px-8 py-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50 flex-shrink-0">
+        <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between bg-zinc-50/50 dark:bg-zinc-900/50 flex-shrink-0">
           <div className="flex items-center gap-6">
-            <h3 className="text-2xl font-black italic tracking-tighter uppercase text-zinc-900 dark:text-zinc-100">
-              {isNew
-                ? "NOVA REQUISIÇÃO"
-                : <>PEDIDO: <span className="text-blue-600">{initialData.order_number || initialData.id?.slice(0, 8)?.toUpperCase()}</span></>}
-            </h3>
+            <div>
+              <h3 className="text-xl font-black italic tracking-tighter uppercase text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                {isNew
+                  ? "NOVA REQUISIÇÃO"
+                  : <>PEDIDO: <span className="text-blue-600">{initialData.order_number || initialData.id?.slice(0, 8)?.toUpperCase()}</span></>}
+              </h3>
+              <p className="text-[9px] font-black uppercase text-zinc-400 tracking-widest mt-1 flex items-center gap-1.5">
+                <User className="h-3.5 w-3.5" />
+                {currentUserName || initialData?.requester_name || "Requisitante"}
+              </p>
+            </div>
             {!isEditing && !isNew && (
               <div className="flex items-center gap-2">
                 <button type="button" onClick={() => setIsEditing(true)} className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-[10px] font-black uppercase tracking-widest">
@@ -148,10 +158,10 @@ export default function RequisitionFormModal({ initialData, equipmentList, items
         <div className="flex flex-1 overflow-hidden min-h-0">
           
           {/* LEFT COLUMN: Metadata & Header Info */}
-          <div className="w-[35%] min-w-[350px] max-w-[500px] border-r border-zinc-100 dark:border-zinc-800 overflow-y-auto p-8 flex flex-col gap-6 bg-white dark:bg-zinc-950/30">
+          <div className="w-[30%] min-w-[320px] max-w-[400px] border-r border-zinc-100 dark:border-zinc-800 overflow-y-auto p-6 flex flex-col gap-5 bg-white dark:bg-zinc-950/30 custom-scrollbar">
             
-            <div className="space-y-4">
-              <h4 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest flex items-center gap-2 border-b border-zinc-100 dark:border-zinc-800 pb-2">
+            <div className="space-y-3">
+              <h4 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest flex items-center gap-2 border-b border-zinc-100 dark:border-zinc-800 pb-1.5">
                 <Settings className="h-3.5 w-3.5" /> Dados Gerais
               </h4>
 
@@ -171,6 +181,34 @@ export default function RequisitionFormModal({ initialData, equipmentList, items
                     <option value={selectedDelegationId}>{initialData.delegation_name || "Delegação Selecionada"}</option>
                   )}
                 </select>
+              </div>
+
+              <div className="space-y-1.5 pt-1">
+                <label className={labelCls}>Destino da Requisição</label>
+                <div className="grid grid-cols-2 gap-1.5 bg-zinc-100 dark:bg-zinc-900 p-1 rounded-xl">
+                  {["Equipamento", "Stock"].map(t => {
+                    const isSelected = reqType === t.toLowerCase();
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        disabled={!isEditing}
+                        onClick={() => {
+                          setReqType(t.toLowerCase() as any);
+                          if (t === "Stock") setSelectedEquipmentId("");
+                        }}
+                        className={cn(
+                          "py-2 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all disabled:opacity-50",
+                          isSelected
+                            ? "bg-white dark:bg-zinc-800 shadow-sm text-blue-600"
+                            : "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                        )}
+                      >
+                        {t}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <div className="space-y-1.5">
@@ -228,14 +266,14 @@ export default function RequisitionFormModal({ initialData, equipmentList, items
               </div>
             </div>
 
-            <div className="space-y-4">
-              <h4 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest flex items-center gap-2 border-b border-zinc-100 dark:border-zinc-800 pb-2">
+            <div className={cn("space-y-3 transition-opacity", reqType === "stock" ? "opacity-40 grayscale" : "opacity-100")}>
+              <h4 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest flex items-center gap-2 border-b border-zinc-100 dark:border-zinc-800 pb-1.5">
                 <ClipboardList className="h-3.5 w-3.5" /> Equipamento ou Máquina
               </h4>
 
               <div className="space-y-1.5">
                 <select
-                  disabled={!isEditing}
+                  disabled={!isEditing || reqType === "stock"}
                   className={selectCls}
                   value={selectedEquipmentId}
                   onChange={e => setSelectedEquipmentId(e.target.value)}
@@ -318,12 +356,12 @@ export default function RequisitionFormModal({ initialData, equipmentList, items
             </div>
 
             {/* General Observations */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 flex-1 flex flex-col min-h-[100px]">
               <label className={labelCls}>Observações da Requisição</label>
               <textarea
                 disabled={!isEditing}
                 placeholder="Insira as notas importantes para esta requisição..."
-                className={cn(inputCls, "min-h-[80px] resize-none normal-case")}
+                className={cn(inputCls, "flex-1 resize-none normal-case min-h-[80px]")}
                 value={observations}
                 onChange={e => setObservations(e.target.value)}
               />
@@ -332,7 +370,7 @@ export default function RequisitionFormModal({ initialData, equipmentList, items
           </div>
 
           {/* RIGHT COLUMN: Article Lines */}
-          <div className="flex-1 flex flex-col p-8 overflow-hidden bg-white dark:bg-zinc-900">
+          <div className="flex-1 flex flex-col p-6 overflow-hidden bg-white dark:bg-zinc-900">
             
             <div className="flex items-center gap-4 mb-4 flex-shrink-0">
               <h4 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest flex items-center gap-2">
@@ -388,10 +426,10 @@ export default function RequisitionFormModal({ initialData, equipmentList, items
             )}
 
             {/* Order lines table */}
-            <div className="flex-1 border-2 border-zinc-100 dark:border-zinc-800 rounded-2xl overflow-hidden flex flex-col min-h-0 bg-white dark:bg-zinc-950">
-              <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 border-2 border-zinc-100 dark:border-zinc-800 rounded-2xl overflow-hidden flex flex-col min-h-0 bg-white dark:bg-zinc-950 relative">
+              <div className="absolute inset-0 overflow-y-auto custom-scrollbar">
                 <table className="w-full text-left border-collapse">
-                  <thead className="sticky top-0 bg-zinc-50 dark:bg-zinc-900 z-10 shadow-[0_2px_0_0_rgba(228,228,231,1)] dark:shadow-[0_2px_0_0_rgba(39,39,42,1)]">
+                  <thead className="sticky top-0 bg-zinc-50 dark:bg-zinc-900 z-10 shadow-[0_1px_0_0_rgba(228,228,231,1)] dark:shadow-[0_1px_0_0_rgba(39,39,42,1)]">
                     <tr className="text-[9px] uppercase font-black text-zinc-500 dark:text-zinc-400 tracking-[0.2em]">
                       <th className="px-6 py-3.5">Cód. Artigo</th>
                       <th className="px-6 py-3.5">Descrição</th>
@@ -472,7 +510,7 @@ export default function RequisitionFormModal({ initialData, equipmentList, items
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={isSubmitting || !selectedEquipmentId || !selectedDelegationId || orderLines.length === 0}
+                disabled={isSubmitting || (reqType === "equipamento" && !selectedEquipmentId) || !selectedDelegationId || orderLines.length === 0}
                 className="px-8 py-2.5 bg-blue-600 text-white rounded-xl font-black uppercase text-[10px] tracking-[0.15em] shadow-lg shadow-blue-600/20 hover:scale-[1.02] transition-all disabled:opacity-30 disabled:hover:scale-100 flex items-center gap-2"
               >
                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardList className="h-4 w-4" />}
