@@ -128,10 +128,10 @@ export async function getUsersWithPermissions() {
     const { data: allDelegations } = await supabase.from('delegations').select('id, name');
     const { data: allRoles } = await supabase.from('app_roles').select('id, name');
 
-    // 4. Map to build the hierarchy
-    return (profiles || []).map(profile => {
-      const authUser = authUsers?.find((u: any) => u.id === profile.id);
-      const userPerms = (allPerms || []).filter(p => p.user_id === profile.id);
+    // 4. Map to build the hierarchy based on Auth Users
+    return (authUsers || []).map(authUser => {
+      const profile = profiles?.find(p => p.id === authUser.id);
+      const userPerms = (allPerms || []).filter(p => p.user_id === authUser.id);
       
       const delegationMap: Record<string, string[]> = {};
       userPerms.forEach(p => {
@@ -145,12 +145,12 @@ export async function getUsersWithPermissions() {
       });
 
       return {
-        id: profile.id,
-        name: profile.full_name,
-        email: authUser?.email || profile.email || "N/A", // priority to auth email
-        isAdmin: profile.is_admin,
-        status: profile.status || "Ativo",
-        lastLogin: profile.updated_at ? new Date(profile.updated_at).toLocaleString() : "Nunca",
+        id: authUser.id,
+        name: profile?.full_name || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || "Sem Nome",
+        email: authUser.email || profile?.email || "N/A",
+        isAdmin: profile?.is_admin || false,
+        status: profile?.status || "Ativo",
+        lastLogin: authUser.last_sign_in_at ? new Date(authUser.last_sign_in_at).toLocaleString() : (profile?.updated_at ? new Date(profile.updated_at).toLocaleString() : "Nunca"),
         permissions: Object.entries(delegationMap).map(([delegation, roles]) => ({
           delegation,
           roles
