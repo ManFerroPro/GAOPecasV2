@@ -283,3 +283,46 @@ export async function deleteOrder(orderId: string) {
   revalidatePath("/requisicao");
   return { success: true };
 }
+
+// ─── ROBUST FETCH FOR USER PROFILE AND DELEGATIONS ─────────────────────────────
+
+export async function getMyProfileAndDelegations() {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+  
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { name: "Requisitante", delegations: [] };
+
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const adminClient = serviceRoleKey 
+    ? require('@supabase/supabase-js').createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, serviceRoleKey)
+    : supabase;
+
+  let name = user.user_metadata?.full_name || user.email?.split('@')[0] || "Requisitante";
+  const { data: profile } = await adminClient.from('profiles').select('*').eq('id', user.id).single();
+  if (profile?.full_name) name = profile.full_name;
+
+  let delegations = [];
+  if (profile?.is_admin) {
+    const { data: allDels } = await adminClient.from('delegations').select('id, name').order('name');
+    delegations = allDels || [];
+  } else {
+    const { data: perms } = await adminClient.from('user_delegation_roles').select('delegation_id').eq('user_id', user.id);
+    if (!perms || perms.length === 0) {
+      const { data: allDels } = await adminClient.from('delegations').select('id, name').order('name');
+      delegations = allDels || [];
+    } else {
+      const delIds = perms.map((p: any) => p.delegation_id);
+      const { data: dels } = await adminClient.from('delegations').select('id, name').in('id', delIds).order('name');
+      delegations = dels || [];
+    }
+  }
+
+  // Fallback
+  if (delegations.length === 0) {
+    const { data: hardFallback } = await supabase.from('delegations').select('id, name').order('name');
+    delegations = hardFallback || [];
+  }
+
+  return { name, delegations };
+}

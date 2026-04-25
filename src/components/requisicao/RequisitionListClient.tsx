@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Search, Plus, X, Loader2, ExternalLink, ClipboardList } from "lucide-react";
 import RequisitionFormModal from "./RequisitionFormModal";
-import { getOrders } from "@/app/requisicao/actions";
+import { getOrders, getMyProfileAndDelegations } from "@/app/requisicao/actions";
 import { cn } from "@/lib/utils";
 
 interface RequisitionListClientProps {
@@ -34,6 +34,8 @@ export default function RequisitionListClient({ initialOrders, initialEquipment,
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [liveDelegations, setLiveDelegations] = useState(userDelegations);
+  const [liveUserName, setLiveUserName] = useState(currentUserName);
 
   // Filters
   const [searchId, setSearchId] = useState("");
@@ -47,6 +49,13 @@ export default function RequisitionListClient({ initialOrders, initialEquipment,
   // Sync with server data on mount
   useEffect(() => {
     setOrders(initialOrders);
+    
+    // Fetch live user profile and delegations to prevent any cache issues
+    getMyProfileAndDelegations().then(res => {
+      if (res.name) setLiveUserName(res.name);
+      if (res.delegations && res.delegations.length > 0) setLiveDelegations(res.delegations);
+    }).catch(console.error);
+    
   }, [initialOrders]);
 
   // Reload orders from server action (same pattern as delegações/usuarios)
@@ -281,8 +290,8 @@ export default function RequisitionListClient({ initialOrders, initialEquipment,
           initialData={editingOrder}
           equipmentList={initialEquipment}
           itemsList={initialItems}
-          userDelegations={userDelegations}
-          currentUserName={currentUserName}
+          userDelegations={liveDelegations}
+          currentUserName={liveUserName}
           onClose={handleModalClose}
         />
       )}

@@ -27,6 +27,7 @@ export default function RequisitionFormModal({ initialData, equipmentList, items
   
   const initialReqType = initialData ? (initialData.equipment_id ? "equipamento" : "stock") : "equipamento";
   const [reqType, setReqType] = useState<"equipamento" | "stock">(initialReqType);
+  const [stockType, setStockType] = useState("");
   const [selectedEquipmentId, setSelectedEquipmentId] = useState(initialData?.equipment_id || "");
   const [priority, setPriority] = useState(initialData?.priority || "Normal");
   const [observations, setObservations] = useState(initialData?.observations || "");
@@ -77,15 +78,21 @@ export default function RequisitionFormModal({ initialData, equipmentList, items
   };
 
   const handleSubmit = async () => {
-    if (!selectedEquipmentId || orderLines.length === 0 || !selectedDelegationId) return;
+    if ((reqType === "equipamento" && !selectedEquipmentId) || orderLines.length === 0 || !selectedDelegationId) return;
     setIsSubmitting(true);
+    
+    let finalObservations = observations;
+    if (reqType === "stock" && stockType.trim().length > 0) {
+      finalObservations = `[TIPO DE STOCK: ${stockType.trim()}]\n${observations}`;
+    }
+
     try {
       if (isNew) {
         await createOrder({
-          equipmentId: reqType === "equipamento" ? selectedEquipmentId : "",
+          equipmentId: selectedEquipmentId,
           delegationId: selectedDelegationId,
           priority,
-          observations,
+          observations: finalObservations,
           items: orderLines,
           teamsLink,
         });
@@ -195,7 +202,7 @@ export default function RequisitionFormModal({ initialData, equipmentList, items
                         disabled={!isEditing}
                         onClick={() => {
                           setReqType(t.toLowerCase() as any);
-                          if (t === "Stock") setSelectedEquipmentId("");
+                          // We no longer clear equipment when choosing Stock!
                         }}
                         className={cn(
                           "py-2 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all disabled:opacity-50",
@@ -266,14 +273,15 @@ export default function RequisitionFormModal({ initialData, equipmentList, items
               </div>
             </div>
 
-            <div className={cn("space-y-3 transition-opacity", reqType === "stock" ? "opacity-40 grayscale" : "opacity-100")}>
+            <div className={cn("space-y-3 transition-opacity", reqType === "stock" && !selectedEquipmentId ? "opacity-60 grayscale" : "opacity-100")}>
               <h4 className="text-[10px] font-black uppercase text-zinc-400 tracking-widest flex items-center gap-2 border-b border-zinc-100 dark:border-zinc-800 pb-1.5">
                 <ClipboardList className="h-3.5 w-3.5" /> Equipamento ou Máquina
+                {reqType === "stock" && <span className="text-[8px] font-black uppercase text-zinc-300 ml-auto">(OPCIONAL)</span>}
               </h4>
 
               <div className="space-y-1.5">
                 <select
-                  disabled={!isEditing || reqType === "stock"}
+                  disabled={!isEditing}
                   className={selectCls}
                   value={selectedEquipmentId}
                   onChange={e => setSelectedEquipmentId(e.target.value)}
@@ -354,6 +362,21 @@ export default function RequisitionFormModal({ initialData, equipmentList, items
                 </div>
               )}
             </div>
+
+            {/* Tipo de Stock (Aparece só se Stock) */}
+            {reqType === "stock" && isNew && (
+              <div className="space-y-1.5 flex-shrink-0 animate-in fade-in zoom-in-95 duration-200 bg-blue-50/50 dark:bg-blue-900/10 p-3 rounded-xl border-2 border-blue-100 dark:border-blue-900/50">
+                <label className={cn(labelCls, "text-blue-600 dark:text-blue-400")}>Tipo de Stock</label>
+                <input
+                  type="text"
+                  disabled={!isEditing}
+                  placeholder="Ex: Peças para armazém, consumíveis..."
+                  className={cn(inputCls, "border-blue-200 dark:border-blue-800 focus:border-blue-600 bg-white dark:bg-zinc-950 normal-case")}
+                  value={stockType}
+                  onChange={e => setStockType(e.target.value)}
+                />
+              </div>
+            )}
 
             {/* General Observations */}
             <div className="space-y-1.5 flex-1 flex flex-col min-h-[100px]">
