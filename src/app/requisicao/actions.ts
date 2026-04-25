@@ -32,7 +32,13 @@ export async function getUserDelegations() {
     .select('delegation_id')
     .eq('user_id', user.id);
 
-  if (!perms || perms.length === 0) return [];
+  if (!perms || perms.length === 0) {
+    const { data: allDelegations } = await supabase
+      .from('delegations')
+      .select('id, name')
+      .order('name');
+    return allDelegations || [];
+  }
 
   const delegationIds = [...new Set(perms.map(p => p.delegation_id))];
 
@@ -53,8 +59,6 @@ export async function getOrders() {
 
   const delegations = await getUserDelegations();
   const delegationIds = delegations.map(d => d.id);
-
-  if (delegationIds.length === 0) return [];
 
   // Fetch orders with lines, delegations, and profiles (for requester)
   const { data, error } = await supabase
@@ -134,7 +138,9 @@ export async function getEquipmentForSelector() {
     .select(`
       *,
       equipment_brands (name),
-      equipment_models (name)
+      equipment_models (name),
+      equipment_types (name),
+      equipment_categories (name)
     `)
     .order("mobile_id", { ascending: true });
 
@@ -147,6 +153,10 @@ export async function getEquipmentForSelector() {
     id: eq.mobile_id,
     mobile_id: eq.mobile_id,
     license_plate: eq.license_plate,
+    vin: eq.vin,
+    year: eq.year,
+    type: eq.equipment_types?.name || "",
+    category: eq.equipment_categories?.name || "",
     brand: eq.equipment_brands?.name || "",
     model: eq.equipment_models?.name || "",
     observations: eq.observations || "",
@@ -179,6 +189,7 @@ export async function createOrder(orderData: {
   equipmentId: string;
   delegationId: string;
   priority: string;
+  observations?: string;
   items: { omatapalo_code: string; description: string; requestedQty: number; unit: string }[];
   teamsLink?: string;
 }) {
@@ -196,6 +207,7 @@ export async function createOrder(orderData: {
       requester_id: user?.id || null,
       priority: orderData.priority,
       status: "Submetido",
+      observations: orderData.observations || null,
       teams_link: orderData.teamsLink || null,
     })
     .select()

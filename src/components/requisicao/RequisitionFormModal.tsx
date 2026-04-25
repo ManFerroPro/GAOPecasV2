@@ -25,6 +25,7 @@ export default function RequisitionFormModal({ initialData, equipmentList, items
   );
   const [selectedEquipmentId, setSelectedEquipmentId] = useState(initialData?.equipment_id || "");
   const [priority, setPriority] = useState(initialData?.priority || "Normal");
+  const [observations, setObservations] = useState(initialData?.observations || "");
   const [teamsLink, setTeamsLink] = useState(initialData?.teams_link || "");
   const [status, setStatus] = useState(initialData?.status || "Submetido");
 
@@ -80,6 +81,7 @@ export default function RequisitionFormModal({ initialData, equipmentList, items
           equipmentId: selectedEquipmentId,
           delegationId: selectedDelegationId,
           priority,
+          observations,
           items: orderLines,
           teamsLink,
         });
@@ -252,6 +254,30 @@ export default function RequisitionFormModal({ initialData, equipmentList, items
                 <div className="space-y-3 bg-zinc-50 dark:bg-zinc-900/50 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
+                      <span className="text-[9px] font-black uppercase text-zinc-400 tracking-widest block">VIN</span>
+                      <span className="text-[11px] font-bold text-zinc-900 dark:text-zinc-100 uppercase block truncate">
+                        {selectedEquipment.vin || "—"}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[9px] font-black uppercase text-zinc-400 tracking-widest block">Ano</span>
+                      <span className="text-[11px] font-bold text-zinc-900 dark:text-zinc-100 uppercase block truncate">
+                        {selectedEquipment.year || "—"}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[9px] font-black uppercase text-zinc-400 tracking-widest block">Tipo</span>
+                      <span className="text-[11px] font-bold text-zinc-900 dark:text-zinc-100 uppercase block truncate">
+                        {selectedEquipment.type || "—"}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-[9px] font-black uppercase text-zinc-400 tracking-widest block">Categoria</span>
+                      <span className="text-[11px] font-bold text-zinc-900 dark:text-zinc-100 uppercase block truncate">
+                        {selectedEquipment.category || "—"}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
                       <span className="text-[9px] font-black uppercase text-zinc-400 tracking-widest block">Marca</span>
                       <span className="text-[11px] font-bold text-zinc-900 dark:text-zinc-100 uppercase block truncate">
                         {selectedEquipment.brand || "—"}
@@ -280,7 +306,7 @@ export default function RequisitionFormModal({ initialData, equipmentList, items
                   {selectedEquipment.observations && (
                     <div className="pt-3 mt-3 border-t border-zinc-200 dark:border-zinc-800">
                       <span className="text-[9px] font-black uppercase text-orange-600 dark:text-orange-400 tracking-widest flex items-center gap-1.5 mb-1">
-                        <Info className="h-3.5 w-3.5" /> Observações
+                        <Info className="h-3.5 w-3.5" /> Observações do Equipamento
                       </span>
                       <p className="text-[11px] font-bold text-orange-800 dark:text-orange-300/80 leading-relaxed">
                         {selectedEquipment.observations}
@@ -289,6 +315,18 @@ export default function RequisitionFormModal({ initialData, equipmentList, items
                   )}
                 </div>
               )}
+            </div>
+
+            {/* General Observations */}
+            <div className="space-y-1.5">
+              <label className={labelCls}>Observações da Requisição</label>
+              <textarea
+                disabled={!isEditing}
+                placeholder="Insira as notas importantes para esta requisição..."
+                className={cn(inputCls, "min-h-[80px] resize-none normal-case")}
+                value={observations}
+                onChange={e => setObservations(e.target.value)}
+              />
             </div>
 
           </div>
