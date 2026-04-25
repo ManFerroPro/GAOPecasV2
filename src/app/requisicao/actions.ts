@@ -13,6 +13,20 @@ export async function getUserDelegations() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('is_admin')
+    .eq('id', user.id)
+    .single();
+
+  if (profile?.is_admin) {
+    const { data: allDelegations } = await supabase
+      .from('delegations')
+      .select('id, name')
+      .order('name');
+    return allDelegations || [];
+  }
+
   const { data: perms } = await supabase
     .from('user_delegation_roles')
     .select('delegation_id')
@@ -54,9 +68,9 @@ export async function getOrders() {
         status
       ),
       delegations (name),
-      profiles!orders_created_by_fkey (full_name)
+      profiles (full_name)
     `)
-    .in("delegation_id", delegationIds)
+    .or(`delegation.in.(${delegationIds.join(',')}),delegation.is.null`)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -163,6 +177,7 @@ export async function getItemsForSelector() {
 
 export async function createOrder(orderData: {
   equipmentId: string;
+  delegationId: string;
   priority: string;
   items: { omatapalo_code: string; description: string; requestedQty: number; unit: string }[];
   teamsLink?: string;
@@ -170,11 +185,15 @@ export async function createOrder(orderData: {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
+  const { data: { user } } = await supabase.auth.getUser();
+
   // 1. Insert the main order
   const { data: order, error: orderError } = await supabase
     .from("orders")
     .insert({
       equipment_id: orderData.equipmentId || null,
+      delegation: orderData.delegationId || null,
+      requester_id: user?.id || null,
       priority: orderData.priority,
       status: "Submetido",
       teams_link: orderData.teamsLink || null,

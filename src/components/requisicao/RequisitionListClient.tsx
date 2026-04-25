@@ -10,6 +10,7 @@ interface RequisitionListClientProps {
   initialOrders: any[];
   initialEquipment: any[];
   initialItems: any[];
+  userDelegations: any[];
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -27,7 +28,7 @@ const PRIORITY_COLORS: Record<string, string> = {
   "Emergência": "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-900/50",
 };
 
-export default function RequisitionListClient({ initialOrders, initialEquipment, initialItems }: RequisitionListClientProps) {
+export default function RequisitionListClient({ initialOrders, initialEquipment, initialItems, userDelegations }: RequisitionListClientProps) {
   const [orders, setOrders] = useState(initialOrders);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingOrder, setEditingOrder] = useState<any>(null);
@@ -39,6 +40,8 @@ export default function RequisitionListClient({ initialOrders, initialEquipment,
   const [searchPriority, setSearchPriority] = useState("");
   const [searchStatus, setSearchStatus] = useState("");
   const [searchDate, setSearchDate] = useState("");
+  const [searchDelegation, setSearchDelegation] = useState("");
+  const [searchRequester, setSearchRequester] = useState("");
 
   // Sync with server data on mount
   useEffect(() => {
@@ -64,6 +67,8 @@ export default function RequisitionListClient({ initialOrders, initialEquipment,
     setSearchPriority("");
     setSearchStatus("");
     setSearchDate("");
+    setSearchDelegation("");
+    setSearchRequester("");
   };
 
   const filteredOrders = orders.filter(order => {
@@ -84,7 +89,13 @@ export default function RequisitionListClient({ initialOrders, initialEquipment,
     const matchDate = !searchDate ||
       new Date(order.created_at).toLocaleDateString("pt-PT").includes(searchDate);
 
-    return matchId && matchEquipment && matchPriority && matchStatus && matchDate;
+    const matchDelegation = !searchDelegation ||
+      order.delegation_name?.toLowerCase().includes(searchDelegation.toLowerCase());
+
+    const matchRequester = !searchRequester ||
+      order.requester_name?.toLowerCase().includes(searchRequester.toLowerCase());
+
+    return matchId && matchEquipment && matchPriority && matchStatus && matchDate && matchDelegation && matchRequester;
   });
 
   const searchInputCls = "w-full pl-9 pr-3 py-2.5 rounded-xl border-2 border-zinc-100 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 outline-none focus:border-zinc-900 dark:focus:border-zinc-100 transition-all text-[11px] font-bold uppercase shadow-sm";
@@ -107,15 +118,17 @@ export default function RequisitionListClient({ initialOrders, initialEquipment,
         </header>
 
         {/* Search Row */}
-        <div className="px-6 flex items-end gap-2 mb-4 flex-shrink-0">
+        <div className="px-6 flex items-end gap-2 mb-4 flex-shrink-0 flex-wrap">
           {[
             { label: "Nº Pedido", value: searchId, set: setSearchId, placeholder: "ID..." },
+            { label: "Delegação", value: searchDelegation, set: setSearchDelegation, placeholder: "Delegação..." },
+            { label: "Requisitante", value: searchRequester, set: setSearchRequester, placeholder: "Nome..." },
             { label: "Equipamento", value: searchEquipment, set: setSearchEquipment, placeholder: "Equipamento..." },
             { label: "Prioridade", value: searchPriority, set: setSearchPriority, placeholder: "Prioridade..." },
             { label: "Estado", value: searchStatus, set: setSearchStatus, placeholder: "Estado..." },
             { label: "Data", value: searchDate, set: setSearchDate, placeholder: "DD/MM/AAAA..." },
           ].map(({ label, value, set, placeholder }) => (
-            <div key={label} className="flex-1 space-y-1">
+            <div key={label} className="flex-1 min-w-[120px] space-y-1">
               <span className="text-[8px] font-black uppercase text-zinc-400 tracking-widest pl-1">{label}</span>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-300" />
@@ -151,6 +164,7 @@ export default function RequisitionListClient({ initialOrders, initialEquipment,
               <thead className="sticky top-0 bg-zinc-50 dark:bg-zinc-900 z-10 shadow-[0_2px_0_0_rgba(228,228,231,1)] dark:shadow-[0_2px_0_0_rgba(39,39,42,1)]">
                 <tr className="text-[9px] uppercase font-black text-zinc-600 dark:text-zinc-400 tracking-[0.2em]">
                   <th className="px-8 py-2 text-center">Nº Pedido</th>
+                  <th className="px-8 py-2">Delegação / Requisitante</th>
                   <th className="px-8 py-2">Equipamento</th>
                   <th className="px-8 py-2 text-center">Artigos</th>
                   <th className="px-8 py-2 text-center">Prioridade</th>
@@ -170,6 +184,16 @@ export default function RequisitionListClient({ initialOrders, initialEquipment,
                       <span className="font-mono font-black text-blue-600 dark:text-blue-500 text-[14px] tracking-[0.15em] leading-none">
                         {order.order_number || order.id?.slice(0, 8)?.toUpperCase()}
                       </span>
+                    </td>
+                    <td className="px-8 py-2 align-top">
+                      <div className="space-y-0.5">
+                        <span className="text-zinc-900 dark:text-white font-black uppercase text-[11px] tracking-widest leading-none block">
+                          {order.delegation_name || "—"}
+                        </span>
+                        <p className="text-[10px] font-bold uppercase text-zinc-400 dark:text-zinc-500 leading-tight">
+                          {order.requester_name || "—"}
+                        </p>
+                      </div>
                     </td>
                     <td className="px-8 py-2 align-top">
                       <div className="space-y-0.5">
@@ -240,7 +264,7 @@ export default function RequisitionListClient({ initialOrders, initialEquipment,
                 ))}
                 {filteredOrders.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-8 py-20 text-center text-[10px] font-bold text-zinc-300 uppercase tracking-widest italic">
+                    <td colSpan={8} className="px-8 py-20 text-center text-[10px] font-bold text-zinc-300 uppercase tracking-widest italic">
                       Nenhuma requisição encontrada.
                     </td>
                   </tr>
@@ -256,6 +280,7 @@ export default function RequisitionListClient({ initialOrders, initialEquipment,
           initialData={editingOrder}
           equipmentList={initialEquipment}
           itemsList={initialItems}
+          userDelegations={userDelegations}
           onClose={handleModalClose}
         />
       )}

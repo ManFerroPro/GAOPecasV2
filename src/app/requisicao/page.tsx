@@ -1,12 +1,13 @@
 import RequisitionListClient from "@/components/requisicao/RequisitionListClient";
-import { getOrders, getEquipmentForSelector, getItemsForSelector } from "./actions";
+import { getOrders, getEquipmentForSelector, getItemsForSelector, getUserDelegations } from "./actions";
 
 export default async function RequisicaoPage() {
   // Fetch all data in parallel via server actions
-  const [orders, equipment, items] = await Promise.all([
+  const [orders, equipment, items, delegations] = await Promise.all([
     getOrders(),
     getEquipmentForSelector(),
     getItemsForSelector(),
+    getUserDelegations(),
   ]);
 
   return (
@@ -15,6 +16,7 @@ export default async function RequisicaoPage() {
         initialOrders={orders}
         initialEquipment={equipment}
         initialItems={items}
+        userDelegations={delegations}
       />
     </div>
   );
