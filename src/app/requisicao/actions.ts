@@ -109,10 +109,15 @@ export async function getOrders() {
   return mapOrdersWithEquipment(adminClient, data || []);
 }
 
-// Helper to map equipment data
+// Helper to map equipment and fallback relations data
 async function mapOrdersWithEquipment(supabase: any, ordersData: any[]) {
   const equipmentIds = [...new Set((ordersData || []).map(o => o.equipment_id).filter(Boolean))];
+  const delegationIds = [...new Set((ordersData || []).map(o => o.delegation).filter(Boolean))];
+  const requesterIds = [...new Set((ordersData || []).map(o => o.requester_id).filter(Boolean))];
+  
   let equipmentMap: Record<string, any> = {};
+  let delegationMap: Record<string, string> = {};
+  let profileMap: Record<string, string> = {};
   
   if (equipmentIds.length > 0) {
     const { data: eqData } = await supabase
@@ -123,6 +128,16 @@ async function mapOrdersWithEquipment(supabase: any, ordersData: any[]) {
     (eqData || []).forEach((eq: any) => {
       equipmentMap[eq.mobile_id] = eq;
     });
+  }
+
+  if (delegationIds.length > 0) {
+    const { data: delData } = await supabase.from("delegations").select("id, name").in("id", delegationIds);
+    (delData || []).forEach((d: any) => { delegationMap[d.id] = d.name; });
+  }
+
+  if (requesterIds.length > 0) {
+    const { data: profData } = await supabase.from("profiles").select("id, full_name").in("id", requesterIds);
+    (profData || []).forEach((p: any) => { profileMap[p.id] = p.full_name; });
   }
 
   return (ordersData || []).map((order: any) => {
@@ -136,8 +151,8 @@ async function mapOrdersWithEquipment(supabase: any, ordersData: any[]) {
       equipment_model: eq?.equipment_models?.name || null,
       lines_count: order.order_lines?.length || 0,
       lines: order.order_lines || [],
-      delegation_name: order.delegations?.name || "N/A",
-      requester_name: order.profiles?.full_name || "N/A",
+      delegation_name: order.delegations?.name || delegationMap[order.delegation] || "N/A",
+      requester_name: order.profiles?.full_name || profileMap[order.requester_id] || "N/A",
     };
   });
 }
